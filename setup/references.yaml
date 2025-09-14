@@ -1,0 +1,1186 @@
+---
+references:
+- id: acitoPredictiveAnalyticsKNIME2023
+  author:
+    - family: Acito
+      given: Frank
+  citation-key: acitoPredictiveAnalyticsKNIME2023
+  DOI: 10.1007/978-3-031-45630-5
+  event-place: Cham
+  ISBN: 978-3-031-45629-9 978-3-031-45630-5
+  issued:
+    - year: 2023
+  language: en
+  license: https://www.springernature.com/gp/researchers/text-and-data-mining
+  publisher: Springer Nature Switzerland
+  publisher-place: Cham
+  source: DOI.org (Crossref)
+  title: 'Predictive Analytics with KNIME: Analytics for Citizen Data Scientists'
+  title-short: Predictive Analytics with KNIME
+  type: book
+  URL: https://link.springer.com/10.1007/978-3-031-45630-5
+
+- id: attStrategyDesignImplementation
+  author:
+    - family: Att
+      given: Mitre
+  citation-key: attStrategyDesignImplementation
+  language: en
+  source: Zotero
+  title: >-
+    Strategy, design, and implementation resources to help you rapidly secure
+    privileged access for your environment.
+  type: article-journal
+
+- id: buckCyberSicherheitFuerKritische2023
+  accessed:
+    - year: 2024
+      month: 12
+      day: 6
+  author:
+    - family: Buck
+      given: Christoph
+    - family: Eymann
+      given: Torsten
+    - family: Jelito
+      given: Dennis
+    - family: Schlatt
+      given: Vincent
+    - family: Schweizer
+      given: André
+    - family: Strobel
+      given: Jacqueline
+    - family: Weiß
+      given: Florian
+  citation-key: buckCyberSicherheitFuerKritische2023
+  container-title: HMD Praxis der Wirtschaftsinformatik
+  container-title-short: HMD
+  DOI: 10.1365/s40702-023-00944-6
+  ISSN: 1436-3011, 2198-2775
+  issued:
+    - year: 2023
+      month: 2
+      day: 9
+  language: de
+  source: DOI.org (Crossref)
+  title: >-
+    Cyber-Sicherheit für kritische Energieinfrastrukturen –
+    Handlungsempfehlungen zur Umsetzung einer Zero-Trust-Architektur
+  type: article-journal
+  URL: https://link.springer.com/10.1365/s40702-023-00944-6
+
+- id: chakrabortyDataClassificationIncremental2022
+  author:
+    - family: Chakraborty
+      given: Sanjay
+    - family: Islam
+      given: Sk Hafizul
+    - family: Samanta
+      given: Debabrata
+  citation-key: chakrabortyDataClassificationIncremental2022
+  collection-title: EAI/Springer Innovations in Communication and Computing
+  DOI: 10.1007/978-3-030-93088-2
+  event-place: Cham
+  ISBN: 978-3-030-93087-5 978-3-030-93088-2
+  issued:
+    - year: 2022
+  language: en
+  license: https://www.springer.com/tdm
+  publisher: Springer International Publishing
+  publisher-place: Cham
+  source: DOI.org (Crossref)
+  title: >-
+    Data Classification and Incremental Clustering in Data Mining and Machine
+    Learning
+  type: book
+  URL: https://link.springer.com/10.1007/978-3-030-93088-2
+
+- id: DatasetsUCIMachine2019
+  accessed:
+    - year: 2025
+      month: 9
+      day: 2
+  citation-key: DatasetsUCIMachine2019
+  issued:
+    - year: 2019
+      month: 9
+      day: 21
+  title: Datasets - UCI Machine Learning Repository
+  type: webpage
+  URL: >-
+    https://archive.ics.uci.edu/datasets?search=Online+Retail&utm_source=chatgpt.com
+
+- id: departmentofdefenseDepartmentDefenseDoD2022
+  author:
+    - family: Department of Defense
+      given: ''
+  citation-key: departmentofdefenseDepartmentDefenseDoD2022
+  issued:
+    - year: 2022
+      month: 7
+  language: en
+  number-of-pages: '104'
+  publisher: United States Department of Defense
+  title: Department of Defense (DoD) Zero Trust Reference Architecture
+  type: book
+  URL: >-
+    https://dodcio.defense.gov/Portals/0/Documents/Library/(U)ZT_RA_v2.0(U)_Sep22.pdf
+
+- id: eckertITSicherheitKonzepteVerfahren2018
+  author:
+    - family: Eckert
+      given: Claudia
+  call-number: QA76.9.A25 E37 2018
+  citation-key: eckertITSicherheitKonzepteVerfahren2018
+  collection-title: De Gruyter studium
+  edition: 10. Auflage
+  event-place: München
+  ISBN: 978-3-11-055158-7
+  issued:
+    - year: 2018
+  number-of-pages: '1004'
+  publisher: De Gruyter Oldenburg
+  publisher-place: München
+  source: Library of Congress ISBN
+  title: 'IT-Sicherheit: Konzepte, Verfahren, Protokolle'
+  title-short: IT-Sicherheit
+  type: book
+
+- id: faberITUndITSicherheit2021
+  author:
+    - family: Faber
+      given: Eberhard
+      dropping-particle: von
+  citation-key: faberITUndITSicherheit2021
+  collection-title: Edition <kes>
+  event-place: Wiesbaden [Heidelberg]
+  ISBN: 978-3-658-33430-7
+  issued:
+    - year: 2021
+  language: ger
+  number-of-pages: '277'
+  publisher: Springer Vieweg
+  publisher-place: Wiesbaden [Heidelberg]
+  source: K10plus ISBN
+  title: >-
+    IT und IT-Sicherheit in Begriffen und Zusammenhängen: thematisch sortiertes
+    Lexikon mit alphabetischem Register zum Nachschlagen
+  title-short: IT und IT-Sicherheit in Begriffen und Zusammenhängen
+  type: book
+
+- id: ferraioloRoleBasedAccessControls2009
+  accessed:
+    - year: 2025
+      month: 2
+      day: 21
+  author:
+    - family: Ferraiolo
+      given: David F.
+    - family: Kuhn
+      given: D. Richard
+  citation-key: ferraioloRoleBasedAccessControls2009
+  DOI: 10.48550/arXiv.0903.2171
+  issued:
+    - year: 2009
+      month: 6
+      day: 3
+  number: arXiv:0903.2171
+  publisher: arXiv
+  source: arXiv.org
+  title: Role-Based Access Controls
+  type: article
+  URL: http://arxiv.org/abs/0903.2171
+
+- id: gentzBuildingEcosystemFashion2024
+  author:
+    - family: Gentz
+      given: Robert
+    - family: Schneider
+      given: David
+  citation-key: gentzBuildingEcosystemFashion2024
+  issued:
+    - year: 2024
+  language: en
+  source: Zotero
+  title: Building the ecosystem for fashion and lifestyle e-commerce
+  type: article-journal
+  volume: Strategie Update 2024
+
+- id: hennigClusterwiseAssessmentCluster2007
+  author:
+    - family: Hennig
+      given: Christian
+  citation-key: hennigClusterwiseAssessmentCluster2007
+  container-title: Computational Statistics & Data Analysis
+  container-title-short: Computational Statistics & Data Analysis
+  DOI: 10.1016/j.csda.2006.11.025
+  ISSN: '01679473'
+  issue: '1'
+  issued:
+    - year: 2007
+      month: 9
+  language: en
+  license: https://www.elsevier.com/tdm/userlicense/1.0/
+  page: 258-271
+  source: DOI.org (Crossref)
+  title: Cluster-wise assessment of cluster stability
+  type: article-journal
+  URL: https://linkinghub.elsevier.com/retrieve/pii/S0167947306004622
+  volume: '52'
+
+- id: huGuideAttributeBased2014
+  accessed:
+    - year: 2025
+      month: 2
+      day: 11
+  author:
+    - family: Hu
+      given: Vincent C.
+    - family: Ferraiolo
+      given: David
+    - family: Kuhn
+      given: Rick
+    - family: Schnitzer
+      given: Adam
+    - family: Sandlin
+      given: Kenneth
+    - family: Miller
+      given: Robert
+    - family: Scarfone
+      given: Karen
+  citation-key: huGuideAttributeBased2014
+  DOI: 10.6028/NIST.SP.800-162
+  issued:
+    - year: 2014
+      month: 1
+  language: en
+  number: NIST SP 800-162
+  page: NIST SP 800-162
+  publisher: National Institute of Standards and Technology
+  source: DOI.org (Crossref)
+  title: Guide to Attribute Based Access Control (ABAC) Definition and Considerations
+  type: report
+  URL: https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-162.pdf
+
+- id: jensenWhyZeroTrust2024
+  accessed:
+    - year: 2025
+      month: 2
+      day: 25
+  author:
+    - family: Jensen
+      given: Christian Damsgaard
+  citation-key: jensenWhyZeroTrust2024
+  container-title: Trust Management XIV
+  DOI: 10.1007/978-3-031-76714-2_8
+  editor:
+    - family: Muller
+      given: Tim
+    - family: Fernandez-Gago
+      given: Carmen
+    - family: Ceolin
+      given: Davide
+    - family: Gudes
+      given: Ehud
+    - family: Gal-Oz
+      given: Nurit
+  event-place: Cham
+  ISBN: 978-3-031-76713-5 978-3-031-76714-2
+  issued:
+    - year: 2024
+  language: en
+  page: 121-135
+  publisher: Springer Nature Switzerland
+  publisher-place: Cham
+  source: DOI.org (Crossref)
+  title: Why Zero Trust Architectures Are Not Replacing Trust
+  type: chapter
+  URL: https://link.springer.com/10.1007/978-3-031-76714-2_8
+  volume: '694'
+
+- id: jensenWhyZeroTrust2024a
+  accessed:
+    - year: 2025
+      month: 2
+      day: 22
+  author:
+    - family: Jensen
+      given: Christian Damsgaard
+  citation-key: jensenWhyZeroTrust2024a
+  container-title: Trust Management XIV
+  DOI: 10.1007/978-3-031-76714-2_8
+  editor:
+    - family: Muller
+      given: Tim
+    - family: Fernandez-Gago
+      given: Carmen
+    - family: Ceolin
+      given: Davide
+    - family: Gudes
+      given: Ehud
+    - family: Gal-Oz
+      given: Nurit
+  event-place: Cham
+  ISBN: 978-3-031-76713-5 978-3-031-76714-2
+  issued:
+    - year: 2024
+  language: en
+  page: 121-135
+  publisher: Springer Nature Switzerland
+  publisher-place: Cham
+  source: DOI.org (Crossref)
+  title: Why Zero Trust Architectures Are Not Replacing Trust
+  type: chapter
+  URL: https://link.springer.com/10.1007/978-3-031-76714-2_8
+  volume: '694'
+
+- id: jensenWhyZeroTrust2024b
+  accessed:
+    - year: 2025
+      month: 2
+      day: 22
+  author:
+    - family: Jensen
+      given: Christian Damsgaard
+  citation-key: jensenWhyZeroTrust2024b
+  container-title: Trust Management XIV
+  DOI: 10.1007/978-3-031-76714-2_8
+  editor:
+    - family: Muller
+      given: Tim
+    - family: Fernandez-Gago
+      given: Carmen
+    - family: Ceolin
+      given: Davide
+    - family: Gudes
+      given: Ehud
+    - family: Gal-Oz
+      given: Nurit
+  event-place: Cham
+  ISBN: 978-3-031-76713-5 978-3-031-76714-2
+  issued:
+    - year: 2024
+  language: en
+  page: 121-135
+  publisher: Springer Nature Switzerland
+  publisher-place: Cham
+  source: DOI.org (Crossref)
+  title: Why Zero Trust Architectures Are Not Replacing Trust
+  type: chapter
+  URL: https://link.springer.com/10.1007/978-3-031-76714-2_8
+  volume: '694'
+
+- id: josangCybersecurityTechnologyGovernance2025
+  author:
+    - family: Jøsang
+      given: Audun
+  citation-key: josangCybersecurityTechnologyGovernance2025
+  DOI: 10.1007/978-3-031-68483-8
+  event-place: Cham
+  ISBN: 978-3-031-68483-8
+  issued:
+    - year: 2025
+  language: eng
+  number-of-pages: '1'
+  publisher: Springer Nature Switzerland
+  publisher-place: Cham
+  source: K10plus ISBN
+  title: 'Cybersecurity: Technology and Governance'
+  title-short: Cybersecurity
+  type: book
+
+- id: kaplanBalancedScorecardTranslating1996
+  author:
+    - family: Kaplan
+      given: Robert S.
+    - family: Norton
+      given: David P.
+  citation-key: kaplanBalancedScorecardTranslating1996
+  event-place: Boston, Mass
+  ISBN: 978-0-87584-651-4
+  issued:
+    - year: 1996
+  language: en
+  number-of-pages: '322'
+  publisher: Harvard Business School Press
+  publisher-place: Boston, Mass
+  source: K10plus ISBN
+  title: 'The balanced scorecard: translating strategy into action'
+  title-short: The balanced scorecard
+  type: book
+
+- id: kernAdministrationConceptEnterprise
+  author:
+    - family: Kern
+      given: Axel
+    - family: Schaad
+      given: Andreas
+    - family: Moffett
+      given: Jonathan
+  citation-key: kernAdministrationConceptEnterprise
+  language: en
+  source: Zotero
+  title: An Administration Concept for the Enterprise Role-Based Access Control Model
+  type: article-journal
+
+- id: laiSilhouetteCoefficientbasedWeighting2025
+  author:
+    - family: Lai
+      given: Huixia
+    - family: Huang
+      given: Tao
+    - family: Lu
+      given: BinLong
+    - family: Zhang
+      given: Shi
+    - family: Xiaog
+      given: Ruliang
+  citation-key: laiSilhouetteCoefficientbasedWeighting2025
+  container-title: Neural Computing and Applications
+  container-title-short: Neural Comput & Applic
+  DOI: 10.1007/s00521-024-10706-0
+  ISSN: 0941-0643, 1433-3058
+  issue: '5'
+  issued:
+    - year: 2025
+      month: 2
+  language: en
+  page: 3061-3075
+  source: DOI.org (Crossref)
+  title: Silhouette coefficient-based weighting k-means algorithm
+  type: article-journal
+  URL: https://link.springer.com/10.1007/s00521-024-10706-0
+  volume: '37'
+
+- id: langmannRoboticProcessAutomation2022
+  accessed:
+    - year: 2025
+      month: 5
+      day: 23
+  author:
+    - family: Langmann
+      given: Christian
+    - family: Turi
+      given: Daniel
+  citation-key: langmannRoboticProcessAutomation2022
+  DOI: 10.1007/978-3-658-38692-4
+  event-place: Wiesbaden
+  ISBN: 978-3-658-38691-7 978-3-658-38692-4
+  issued:
+    - year: 2022
+  language: en
+  license: https://www.springernature.com/gp/researchers/text-and-data-mining
+  publisher: Springer Fachmedien Wiesbaden
+  publisher-place: Wiesbaden
+  source: Crossref
+  title: >-
+    Robotic Process Automation (RPA) - Digitization and Automation of Processes:
+    Prerequisites, functionality and implementation using accounting as an
+    example
+  title-short: Robotic Process Automation (RPA) - Digitization and Automation of Processes
+  type: book
+  URL: https://link.springer.com/10.1007/978-3-658-38692-4
+
+- id: markusUnternehmenZukunftDigital2024
+  accessed:
+    - year: 2025
+      month: 6
+      day: 14
+  author:
+    - family: Markus
+      given: Heike
+  citation-key: markusUnternehmenZukunftDigital2024
+  DOI: 10.1007/978-3-658-44550-8
+  event-place: Wiesbaden
+  ISBN: 978-3-658-44549-2 978-3-658-44550-8
+  issued:
+    - year: 2024
+  language: de
+  license: https://www.springernature.com/gp/researchers/text-and-data-mining
+  publisher: Springer Fachmedien Wiesbaden
+  publisher-place: Wiesbaden
+  source: DOI.org (Crossref)
+  title: >-
+    Das Unternehmen der Zukunft - digital und nachhaltig: Wie sich Unternehmen
+    flexibel und agil aufstellen können
+  title-short: Das Unternehmen der Zukunft - digital und nachhaltig
+  type: book
+  URL: https://link.springer.com/10.1007/978-3-658-44550-8
+
+- id: microsoftcorporationAbsicherungUnternehmensZugriffsmodellsFuer2024
+  accessed:
+    - year: 2025
+      month: 2
+      day: 27
+  author:
+    - family: Microsoft Corporation
+      given: ''
+    - family: MicrosoftGuyJFlo
+      given: ''
+  citation-key: microsoftcorporationAbsicherungUnternehmensZugriffsmodellsFuer2024
+  issued:
+    - year: 2024
+      month: 2
+      day: 7
+  language: de-de
+  title: >-
+    Absicherung des Unternehmens-Zugriffsmodells für den privilegierten Zugriff
+    - Privileged access
+  type: webpage
+  URL: >-
+    https://learn.microsoft.com/de-de/security/privileged-access-workstations/privileged-access-access-model
+
+- id: microsoftcorporationSecuringPrivilegedAccess2024
+  accessed:
+    - year: 2025
+      month: 2
+      day: 11
+  author:
+    - family: Microsoft Corporation
+      given: ''
+    - family: MicrosoftGuyJFlo
+      given: ''
+  citation-key: microsoftcorporationSecuringPrivilegedAccess2024
+  issued:
+    - year: 2024
+      month: 1
+      day: 29
+  language: en-us
+  title: Securing privileged access Enterprise access model - Privileged access
+  type: webpage
+  URL: >-
+    https://learn.microsoft.com/en-us/security/privileged-access-workstations/privileged-access-access-model
+
+- id: microsoftcorporationWhatConditionalAccess2024
+  abstract: >-
+    Conditional Access is the Zero Trust policy engine at the heart of the new
+    identity-driven control plane.
+  accessed:
+    - year: 2025
+      month: 2
+      day: 28
+  author:
+    - family: Microsoft Corporation
+      given: ''
+    - family: MicrosoftGuyJFlo
+      given: ''
+  citation-key: microsoftcorporationWhatConditionalAccess2024
+  issued:
+    - year: 2024
+      month: 3
+      day: 19
+  language: en-us
+  title: What is Conditional Access in Microsoft Entra ID? - Microsoft Entra ID
+  title-short: What is Conditional Access in Microsoft Entra ID?
+  type: webpage
+  URL: https://learn.microsoft.com/en-us/entra/identity/conditional-access/overview
+
+- id: microsoftcorporationZeroTrustEssentials2025
+  author:
+    - family: Microsoft Corporation
+      given: ''
+  citation-key: microsoftcorporationZeroTrustEssentials2025
+  event-place: Redmond, WA
+  issued:
+    - year: 2025
+  language: en
+  publisher: Microsoft
+  publisher-place: Redmond, WA
+  source: Zotero
+  title: Zero Trust Essentials eBook
+  type: book
+  URL: >-
+    https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/microsoft/final/en-us/microsoft-brand/documents/zero-trust-essentials-ebook.pdf
+
+- id: microsoftcorporationZeroTrustStrategy
+  accessed:
+    - year: 2025
+      month: 2
+      day: 26
+  author:
+    - family: Microsoft Corporation
+      given: ''
+  citation-key: microsoftcorporationZeroTrustStrategy
+  container-title: Microsoft Security
+  genre: Webseite
+  title: Zero Trust Strategy & Architecture | Microsoft Security
+  type: webpage
+  URL: https://www.microsoft.com/en-us/security/business/zero-trust
+
+- id: MicrosoftEntraID
+  accessed:
+    - year: 2025
+      month: 2
+      day: 21
+  citation-key: MicrosoftEntraID
+  language: en-US
+  title: Microsoft Entra ID (formerly Azure Active Directory) | Microsoft Security
+  type: webpage
+  URL: >-
+    https://www.microsoft.com/en-us/security/business/identity-access/microsoft-entra-id
+
+- id: microsoftguyjfloSecuringPrivilegedAccess2024
+  abstract: Securing privileged access is part of an enterprise access model
+  accessed:
+    - year: 2024
+      month: 12
+      day: 19
+  author:
+    - family: MicrosoftGuyJFlo
+      given: ''
+  citation-key: microsoftguyjfloSecuringPrivilegedAccess2024
+  issued:
+    - year: 2024
+      month: 1
+      day: 29
+  language: en-us
+  title: Securing privileged access Enterprise access model - Privileged access
+  type: webpage
+  URL: >-
+    https://learn.microsoft.com/en-us/security/privileged-access-workstations/privileged-access-access-model
+
+- id: miyabonOnlineRetailII2009
+  accessed:
+    - year: 2025
+      month: 8
+      day: 30
+  author:
+    - family: Miyabon
+      given: ''
+  citation-key: miyabonOnlineRetailII2009
+  issued:
+    - year: 2009
+      month: 8
+      day: 31
+    - year: 2011
+      month: 12
+      day: 30
+  language: en
+  license: CC0 1.0 Universal
+  title: Online Retail II UCI
+  type: webpage
+  URL: https://www.kaggle.com/datasets/mashlyn/online-retail-ii-uci
+
+- id: mohrDigitalNavigatorModell2020
+  accessed:
+    - year: 2025
+      month: 6
+      day: 15
+  author:
+    - family: Mohr
+      given: Thomas
+  citation-key: mohrDigitalNavigatorModell2020
+  DOI: 10.1007/978-3-658-29704-6
+  event-place: Wiesbaden
+  ISBN: 978-3-658-29703-9 978-3-658-29704-6
+  issued:
+    - year: 2020
+  language: en
+  license: http://www.springer.com/tdm
+  publisher: Springer Fachmedien Wiesbaden
+  publisher-place: Wiesbaden
+  source: DOI.org (Crossref)
+  title: 'Der Digital Navigator: Ein Modell für die digitale Transformation'
+  title-short: Der Digital Navigator
+  type: book
+  URL: http://link.springer.com/10.1007/978-3-658-29704-6
+
+- id: moulaviDensityBasedClusteringValidation2014
+  author:
+    - family: Moulavi
+      given: Davoud
+    - family: Jaskowiak
+      given: Pablo A.
+    - family: Campello
+      given: Ricardo J. G. B.
+    - family: Zimek
+      given: Arthur
+    - family: Sander
+      given: Jörg
+  citation-key: moulaviDensityBasedClusteringValidation2014
+  container-title: Proceedings of the 2014 SIAM International Conference on Data Mining
+  DOI: 10.1137/1.9781611973440.96
+  event-title: Proceedings of the 2014 SIAM International Conference on Data Mining
+  ISBN: 978-1-61197-344-0
+  issued:
+    - year: 2014
+      month: 4
+      day: 28
+  language: en
+  page: 839-847
+  publisher: Society for Industrial and Applied Mathematics
+  source: DOI.org (Crossref)
+  title: Density-Based Clustering Validation
+  type: paper-conference
+  URL: https://epubs.siam.org/doi/10.1137/1.9781611973440.96
+
+- id: muellerITSicherheitMitSystem2014
+  author:
+    - family: Müller
+      given: Klaus-Rainer
+  citation-key: muellerITSicherheitMitSystem2014
+  edition: 5th ed
+  event-place: Wiesbaden
+  ISBN: 978-3-658-04333-9 978-3-658-04334-6
+  issued:
+    - year: 2014
+  language: ger
+  number-of-pages: '1'
+  publisher: Springer Fachmedien Wiesbaden GmbH
+  publisher-place: Wiesbaden
+  source: K10plus ISBN
+  title: >-
+    IT-Sicherheit Mit System: Integratives IT-Sicherheits-, Kontinuitäts- und
+    Risikomanagement - Sichere Anwendungen - Standards und Practices
+  title-short: IT-Sicherheit Mit System
+  type: book
+
+- id: mullerTrustManagementXIV2024
+  citation-key: mullerTrustManagementXIV2024
+  collection-number: '694'
+  collection-title: IFIP Advances in Information and Communication Technology
+  DOI: 10.1007/978-3-031-76714-2
+  edition: 1st ed. 2024
+  editor:
+    - family: Muller
+      given: Tim
+    - family: Fernandez-Gago
+      given: Carmen
+    - family: Ceolin
+      given: Davide
+    - family: Gudes
+      given: Ehud
+    - family: Gal-Oz
+      given: Nurit
+  event-place: Cham
+  ISBN: 978-3-031-76714-2
+  issued:
+    - year: 2024
+  language: eng
+  number-of-pages: '1'
+  publisher: Springer Nature Switzerland
+  publisher-place: Cham
+  source: K10plus ISBN
+  title: >-
+    Trust Management XIV: 14th IFIP WG 11.11 International Conference on Trust
+    Management, IFIPTM 2023, Amsterdam, The Netherlands, October 18–20, 2023,
+    Proceedings
+  title-short: Trust Management XIV
+  type: book
+
+- id: pohlmannCyberSicherheitLehrbuchFuer2022
+  author:
+    - family: Pohlmann
+      given: Norbert
+  citation-key: pohlmannCyberSicherheitLehrbuchFuer2022
+  collection-title: Springer eBook Collection
+  DOI: 10.1007/978-3-658-36243-0
+  edition: 2. Auflage
+  event-place: Wiesbaden
+  ISBN: 978-3-658-36242-3 978-3-658-36243-0
+  issued:
+    - year: 2022
+  language: ger
+  number-of-pages: '1'
+  publisher: Springer Vieweg
+  publisher-place: Wiesbaden
+  source: K10plus ISBN
+  title: >-
+    Cyber-Sicherheit: das Lehrbuch für Konzepte, Prinzipien, Mechanismen,
+    Architekturen und Eigenschaften von Cyber-Sicherheitssystemen in der
+    Digitalisierung
+  title-short: Cyber-Sicherheit
+  type: book
+
+- id: proofpointCybersecurityThreatsWorldwide2024
+  accessed:
+    - year: 2025
+      month: 2
+      day: 25
+  author:
+    - family: Proofpoint
+      given: ''
+    - family: Censuswide
+      given: ''
+  citation-key: proofpointCybersecurityThreatsWorldwide2024
+  container-title: Statista
+  genre: Statistik
+  issued:
+    - year: 2024
+      month: 3
+  language: en
+  note: |-
+    Befragungszeitraum: 20. Januar – 2. Februar 2024
+    Region: Weltweit
+    Anzahl der Befragten: 1.600 CISOs
+  title: Cybersecurity threats worldwide according to CISOs 2024 | Statista
+  type: webpage
+  URL: >-
+    https://www.statista.com/statistics/1350460/cybersecurity-threats-at-companies-worldwide-cisos/?utm_source=chatgpt.com
+
+- id: raisZeroTrustNetworks2024
+  author:
+    - family: Rais
+      given: Razi
+      dropping-particle: bin
+    - family: Morillo
+      given: Christina
+    - family: Gilman
+      given: Evan
+    - family: Barth
+      given: Doug
+  call-number: TK5105.59 .R357 2024
+  citation-key: raisZeroTrustNetworks2024
+  edition: Second edition
+  event-place: Sebastopol, CA
+  ISBN: 978-1-4920-9659-7
+  issued:
+    - year: 2024
+  note: 'OCLC: on1355899226'
+  number-of-pages: '312'
+  publisher: O'Reilly Media, Inc
+  publisher-place: Sebastopol, CA
+  source: Library of Congress ISBN
+  title: 'Zero trust networks: building secure systems in untrusted network'
+  title-short: Zero trust networks
+  type: book
+
+- id: rammerChristianRammerZEW2024
+  author:
+    - family: Rammer
+      given: Dr Christian
+  citation-key: rammerChristianRammerZEW2024
+  issued:
+    - year: 2024
+      month: 10
+      day: 1
+  language: de
+  source: Zotero
+  title: >-
+    Christian Rammer (ZEW, Projektleitung) Torben Schubert (ISI) Leon Steines
+    (ZEW)
+  type: article-journal
+
+- id: rawalCybersecurityIdentityAccess2023
+  author:
+    - family: Rawal
+      given: Bharat S.
+    - family: Manogaran
+      given: Gunasekaran
+    - family: Peter
+      given: Alexender
+  citation-key: rawalCybersecurityIdentityAccess2023
+  DOI: 10.1007/978-981-19-2658-7
+  edition: 1st ed. 2023
+  event-place: Singapore
+  ISBN: 978-981-19-2658-7
+  issued:
+    - year: 2023
+  language: eng
+  number-of-pages: '1'
+  publisher: Springer Nature Singapore
+  publisher-place: Singapore
+  source: K10plus ISBN
+  title: Cybersecurity and Identity Access Management
+  type: book
+
+- id: sandhuRoleBasedAccessControl
+  author:
+    - family: Sandhu
+      given: Ravi S
+  citation-key: sandhuRoleBasedAccessControl
+  language: en
+  source: Zotero
+  title: Role-Based Access Control
+  type: article-journal
+
+- id: sandhuRoleBasedAccessControla
+  author:
+    - family: Sandhu
+      given: Ravi S
+    - family: Coyne
+      given: Edward J
+    - family: Feinstein
+      given: Hal L
+    - family: Youman
+      given: Charles E
+  citation-key: sandhuRoleBasedAccessControla
+  language: en
+  source: Zotero
+  title: Role-Based Access Control Models
+  type: article-journal
+
+- id: shmuelBehaviorDependentAccessControl2024
+  accessed:
+    - year: 2025
+      month: 2
+      day: 22
+  author:
+    - family: Shmuel
+      given: Amour
+    - family: Gudes
+      given: Ehud
+  citation-key: shmuelBehaviorDependentAccessControl2024
+  container-title: Trust Management XIV
+  DOI: 10.1007/978-3-031-76714-2_2
+  editor:
+    - family: Muller
+      given: Tim
+    - family: Fernandez-Gago
+      given: Carmen
+    - family: Ceolin
+      given: Davide
+    - family: Gudes
+      given: Ehud
+    - family: Gal-Oz
+      given: Nurit
+  event-place: Cham
+  ISBN: 978-3-031-76713-5 978-3-031-76714-2
+  issued:
+    - year: 2024
+  language: en
+  page: 19-36
+  publisher: Springer Nature Switzerland
+  publisher-place: Cham
+  source: DOI.org (Crossref)
+  title: Behavior-Dependent Access Control Policies
+  type: chapter
+  URL: https://link.springer.com/10.1007/978-3-031-76714-2_2
+  volume: '694'
+
+- id: shumwayTimeSeriesAnalysis2017
+  accessed:
+    - year: 2024
+      month: 12
+      day: 17
+  author:
+    - family: Shumway
+      given: Robert H.
+    - family: Stoffer
+      given: David S.
+  citation-key: shumwayTimeSeriesAnalysis2017
+  collection-title: Springer Texts in Statistics
+  DOI: 10.1007/978-3-319-52452-8
+  event-place: Cham
+  ISBN: 978-3-319-52451-1 978-3-319-52452-8
+  issued:
+    - year: 2017
+  language: en
+  license: https://www.springernature.com/gp/researchers/text-and-data-mining
+  publisher: Springer International Publishing
+  publisher-place: Cham
+  source: DOI.org (Crossref)
+  title: 'Time Series Analysis and Its Applications: With R Examples'
+  title-short: Time Series Analysis and Its Applications
+  type: book
+  URL: https://link.springer.com/10.1007/978-3-319-52452-8
+
+- id: statcounterMarktanteileFuehrendenBetriebssysteme2025
+  accessed:
+    - year: 2025
+      month: 2
+      day: 28
+  author:
+    - family: StatCounter
+      given: ''
+  citation-key: statcounterMarktanteileFuehrendenBetriebssysteme2025
+  container-title: >-
+    Marktanteile der führenden Betriebssysteme in Deutschland von Januar 2009
+    bis Januar 2025
+  genre: Statistik
+  issued:
+    - year: 2025
+      month: 2
+  language: de
+  note: >-
+    Erhebungszeitraum: Januar 2009 – Januar 2025
+
+    Region: Deutschland
+
+    Besondere Eigenschaften: Desktop/Laptop
+
+    Veröffentlichung durch: StatCounter
+
+    Hinweis: StatCounter erhebt die Daten anhand von über 386 Millionen Page
+    Views pro Monat (Stand September 2015).
+  title: Marktanteile der führenden Betriebssysteme in Deutschland 2025
+  title-short: Marktanteile Betriebssysteme 2025
+  type: webpage
+  URL: >-
+    https://de.statista.com/statistik/daten/studie/158102/umfrage/marktanteile-von-betriebssystemen-in-deutschland-seit-2009/
+
+- id: stephanActiveDirectoryModernization2023
+  accessed:
+    - year: 2025
+      month: 2
+      day: 21
+  author:
+    - family: Stephan
+      given: Julian
+  citation-key: stephanActiveDirectoryModernization2023
+  container-title: Practical 365
+  issued:
+    - year: 2023
+      month: 8
+      day: 16
+  language: en-US
+  title: 'Active Directory Modernization: Transforming Identity and Access Management'
+  title-short: Active Directory Modernization
+  type: post-weblog
+  URL: >-
+    https://practical365.com/active-directory-modernization-transforming-identity-and-access-management/
+
+- id: suhariEnterpriseArchitekturEntschluesselt2024
+  author:
+    - family: Suhari
+      given: Dennis
+  citation-key: suhariEnterpriseArchitekturEntschluesselt2024
+  DOI: 10.1007/978-3-658-43930-9
+  edition: 1st ed. 2024
+  event-place: Wiesbaden
+  ISBN: 978-3-658-43930-9
+  issued:
+    - year: 2024
+  language: ger
+  number-of-pages: '1'
+  publisher: Springer Fachmedien Wiesbaden
+  publisher-place: Wiesbaden
+  source: K10plus ISBN
+  title: >-
+    Enterprise Architektur entschlüsselt: Ein Praxisorientierter Leitfaden von
+    den Grundlagen bis zur Anwendung
+  title-short: Enterprise Architektur entschlüsselt
+  type: book
+
+- id: tsiptsisDataMiningTechniques2010
+  author:
+    - family: Tsiptsis
+      given: Konstantinos
+    - family: Chorianopoulos
+      given: Antonios
+  citation-key: tsiptsisDataMiningTechniques2010
+  DOI: 10.1002/9780470685815
+  edition: '1'
+  ISBN: 978-0-470-74397-3 978-0-470-68581-5
+  issued:
+    - year: 2010
+      month: 1
+      day: 15
+  language: en
+  license: http://doi.wiley.com/10.1002/tdm_license_1.1
+  publisher: Wiley
+  source: DOI.org (Crossref)
+  title: 'Data Mining Techniques in CRM: Inside Customer Segmentation'
+  title-short: Data Mining Techniques in CRM
+  type: book
+  URL: https://onlinelibrary.wiley.com/doi/book/10.1002/9780470685815
+
+- id: tsolkasRollenUndBerechtigungskonzepte2017
+  author:
+    - family: Tsolkas
+      given: Alexander
+    - family: Schmidt
+      given: Klaus
+  citation-key: tsolkasRollenUndBerechtigungskonzepte2017
+  collection-title: Edition <kes>
+  DOI: 10.1007/978-3-658-17987-8
+  edition: 2. Aufl. 2017
+  event-place: Wiesbaden
+  ISBN: 978-3-658-17986-1 978-3-658-17987-8
+  issued:
+    - year: 2017
+  language: ger
+  number-of-pages: '329'
+  publisher: Springer Vieweg
+  publisher-place: Wiesbaden
+  source: K10plus ISBN
+  title: >-
+    Rollen und Berechtigungskonzepte: Identity- und Access-Management im
+    Unternehmen
+  title-short: Rollen und Berechtigungskonzepte
+  type: book
+
+- id: wierseWeitereEmpfehlenswerteTitel
+  author:
+    - family: Wierse
+      given: Andreas
+    - family: Riedel
+      given: Till
+    - family: Feng
+      given: Dengguo
+  citation-key: wierseWeitereEmpfehlenswerteTitel
+  language: de
+  source: Zotero
+  title: Weitere empfehlenswerte Titel
+  type: article-journal
+
+- id: willcocksMaximizingValueAutomation2024
+  accessed:
+    - year: 2025
+      month: 6
+      day: 15
+  author:
+    - family: Willcocks
+      given: Leslie P.
+    - family: Hindle
+      given: John
+    - family: Stanton
+      given: Matt
+    - family: Smith
+      given: John
+  citation-key: willcocksMaximizingValueAutomation2024
+  DOI: 10.1007/978-3-031-46569-7
+  event-place: Cham
+  ISBN: 978-3-031-46568-0 978-3-031-46569-7
+  issued:
+    - year: 2024
+  language: en
+  license: https://www.springernature.com/gp/researchers/text-and-data-mining
+  publisher: Springer Nature Switzerland
+  publisher-place: Cham
+  source: DOI.org (Crossref)
+  title: >-
+    Maximizing Value with Automation and Digital Transformation: A Realist's
+    Guide
+  title-short: Maximizing Value with Automation and Digital Transformation
+  type: book
+  URL: https://link.springer.com/10.1007/978-3-031-46569-7
+
+- id: wirthCRISPDMStandardProcess2000
+  author:
+    - family: Wirth
+      given: Rüdiger
+    - family: Hipp
+      given: Jochen
+  citation-key: wirthCRISPDMStandardProcess2000
+  issued:
+    - year: 2000
+  language: en
+  page: '11'
+  source: Zotero
+  title: 'CRISP-DM: Towards a Standard Process Model for Data Mining'
+  type: article-journal
+  URL: http://cs.unibo.it/~danilo.montesi/CBD/Beatriz/10.1.1.198.5133.pdf
+
+- id: zykovRetailrocketRecommenderSystem2022
+  accessed:
+    - year: 2025
+      month: 8
+      day: 30
+  author:
+    - family: Zykov
+      given: Roman
+    - family: Noskov
+      given: Artem
+    - family: Anokhin
+      given: Alexander
+  citation-key: zykovRetailrocketRecommenderSystem2022
+  container-title: kaggle.com
+  issued:
+    - year: 2022
+  language: en
+  license: CC BY-NC-SA 4.0
+  title: Retailrocket recommender system dataset
+  type: webpage
+  URL: https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset
+...

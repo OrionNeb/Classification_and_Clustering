@@ -11,3 +11,9 @@ Encoding: UTF-8
 
 RnwWeave: Sweave
 LaTeX: LuaLaTeX
+
+BuildType: Makefile
+
+PythonType: conda
+PythonVersion: 3.12.9
+PythonPath: C:/Users/Chris/miniconda3/python.exe

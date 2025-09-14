@@ -1,0 +1,320 @@
+---
+lang: de  # Dokumentensprache: Deutsch
+
+format:
+  pdf:
+    documentclass: book
+    classoption: openany, oneside  # Kapitel auf jeder Seite starten (verhindert leere Seiten)
+    mainfont: "Latin Modern Roman"
+    fontsize: 11pt
+    linestretch: 1.5  # Zeilenabstand auf 1,5 setzen (für bessere Lesbarkeit)
+    code-fold: false  # Code-Chunks bleiben immer sichtbar (nicht einklappbar)
+    toc: false
+    toc-depth: 4
+    number-sections: true
+    unnumbered-sections: true
+    geometry: "top=3cm, bottom=3cm, headheight=15pt, headsep=1.5cm, footskip=1.5cm"
+    pdf-engine: lualatex
+    listings: false
+    highlight-style: tango  # Syntax-Highlighting für Code
+    code-block-font-size: \tiny
+    code-overflow: wrap
+    include-in-header: 
+      - setup/header.qmd
+      - setup/glossar-eintraege.qmd
+    include-before-body:
+      - setup/titlepage.qmd
+      - setup/gendererklaerung.qmd
+      - setup/abstract.qmd
+      - setup/verzeichnisse.qmd
+      - setup/mainmatter.qmd
+    include-after-body:
+      - setup/glossar.qmd
+      - setup/ehenwoertlicheErklaerung.qmd
+  html:
+    code-fold: true  # Code-Chunks in HTML können ausgeklappt werden
+    toc: false
+    toc-depth: 4
+    number-sections: true
+    self-contained: true  # Alle Ressourcen (Bilder, CSS, etc.) in einer Datei speichern
+    other-formats: ["pdf", "docx", "pptx"]
+  docx:
+    toc: false
+    number-sections: true
+  pptx:
+    reference-doc: setup/FHDW-Powerpoint-Vorlage_16zu9.pptx  # (Optional) Eigene Vorlage nutzen
+bibliography: setup/references.yaml
+citeproc: true
+csl: setup/apa-with-abstract-de.csl # https://www.zotero.org/styles/apa-with-abstract
+link-citations: true
+link-bibliography: true
+editor: source
+execute:
+  freeze: auto
+  eval: true
+  echo: true       # Code anzeigen
+  results: markup  # Output als formatierten Text ausgeben
+  warning: false   # Warnungen unterdrücken
+  message: false   # Nachrichten (z. B. von Paketen) unterdrücken
+  code-overflow: wrap  # Lange Zeilen umbrechen
+---
+
+```{r eval=TRUE, message=FALSE, warning=FALSE, include=FALSE}
+
+# Arbeitsumgebung leeren (alle Objekte entfernen)
+rm(list = ls())
+gc()
+
+# Root für Quarto setzen
+knitr::opts_knit$set(root.dir = here::here())
+
+# Installiere und lade erforderliche Bibliotheken
+if (!requireNamespace("reticulate", quietly = TRUE)) install.packages("reticulate")
+if (!requireNamespace("rmarkdown", quietly = TRUE)) install.packages("rmarkdown")
+if (!requireNamespace("shiny", quietly = TRUE)) install.packages("shiny")
+if (!requireNamespace("dplyr", quietly = TRUE)) install.packages("dplyr")
+if (!requireNamespace("tidyr", quietly = TRUE)) install.packages("tidyr")
+if (!requireNamespace("tidyverse", quietly = TRUE)) install.packages("tidyverse")
+if (!requireNamespace("forecast", quietly = TRUE)) install.packages("forecast")
+if (!requireNamespace("ggpubr", quietly = TRUE)) install.packages("ggpubr")
+if (!requireNamespace("viridis", quietly = TRUE)) install.packages("viridis")
+
+
+
+
+library(reticulate)
+library(rmarkdown)
+library(shiny)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(forecast)
+library(ggpubr)
+library(viridis)
+
+```
+
+```{python, include=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+# Erforderliche Bibliotheken installieren (falls nicht vorhanden)
+import subprocess
+import sys
+
+def install_and_import(package):
+    try:
+        __import__(package)
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+    finally:
+        globals()[package] = __import__(package)
+
+# Äquivalente Bibliotheken in Python installieren und importieren
+libraries = ["pandas", "numpy", "matplotlib", "seaborn", "scipy", "statsmodels", "pulp"]
+
+for lib in libraries:
+    install_and_import(lib)
+
+# Bibliotheken laden
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy import stats
+from statsmodels.tsa.seasonal import STL
+from pulp import LpMaximize, LpProblem, LpVariable, value
+
+```
+
+<!-- ================= 1. Einleitung ================= -->
+
+# Einleitung {#sec-einleitung}
+
+## Problemstellung {#sec-problemstellung}
+
+Der Onlinehandel hat sich zu einem der wichtigsten Vertriebskanäle entwickelt. Millionen von Kunden kaufen regelmäßig ein, doch ihre Verhaltensweisen unterscheiden sich erheblich. Manche Kunden tätigen häufig kleine Käufe, andere bestellen selten, geben dabei aber hohe Summen aus. Hinzu kommen Unterschiede in der Sortimentswahl, im Preisbewusstsein und in der Reaktion auf Kampagnen.
+
+Für Unternehmen liegt darin einerseits eine große Chance, da differenzierte Segmente eine gezielte Ansprache und Bindung ermöglichen. Andererseits stellt diese Vielfalt eine Herausforderung dar. Klassische Auswertungen wie Umsatzstatistiken oder Produktlisten zeigen nur an der Oberfläche Unterschiede, erfassen aber nicht die zugrunde liegenden Strukturen. Viele Segmentierungsprojekte scheitern daran, dass sie entweder methodisch zu stark auf Verfahren fokussieren oder dass die Ergebnisse nicht in verständliche, umsetzbare Formate übersetzt werden.
+
+## Zielsetzung {#sec-zielsetzung}
+
+Die Arbeit möchte die Forschungsfrage beantworten, welche Segmentstrukturen sich in E-Commerce-Daten verbergen und wie diese so dargestellt werden können, dass sie für Marketing und CRM unmittelbar nutzbar sind. Mit den Segmentprofilen, den Personas und den daraus abgeleiteten Maßnahmen wird gezeigt, wie Datenmuster in klare Handlungsoptionen übersetzt werden können. Clustering wird dabei als Werkzeug verstanden, nicht als Selbstzweck.
+
+Der Beitrag dieser Arbeit liegt in drei Aspekten. Erstens wird ein nachvollziehbarer Prozess von der Datenbasis über die Merkmalsbildung bis zur Segmentierung entwickelt. Zweitens werden Segmentstrukturen durch Kennzahlen, Visualisierungen und narrative Personas anschaulich aufbereitet. Drittens werden praxisrelevante Maßnahmen für Marketing und Kundenbindung abgeleitet.
+
+## Vorgehensweise {#sec-vorgehensweise}
+
+Das Vorgehen orientiert sich am CRISP-DM-Modell. Zunächst werden theoretische Grundlagen der Kundensegmentierung und die Rolle von Validierungsmaßen erläutert. Anschließend werden die verwendeten Datensätze beschrieben und durch Feature Engineering in aussagekräftige Merkmale transformiert, unter anderem Recency, Frequency, Monetary Value sowie Warenkorb- und Sortimentsvariablen.
+
+Die Segmentierung wird mit zwei Verfahren durchgeführt: K-Means dient als baseline für kompakte Cluster, während HDBSCAN unregelmäßige Strukturen und Rauschen abbilden kann. Die Qualität wird mit Silhouette und DBCV überprüft. Die Hopkins-Statistik wird ergänzend eingesetzt, wobei ihre eingeschränkte Aussagekraft für hochdimensionale Transaktionsdaten kritisch eingeordnet wird.
+
+Im Ergebnisteil werden die Segmente dargestellt, mit Kennzahlen beschrieben und durch Visualisierungen anschaulich gemacht. Personas übersetzen die Ergebnisse in leicht verständliche Profile. Anschließend werden Implikationen für Marketing und CRM diskutiert. Die Arbeit schließt mit einer Reflexion der Ergebnisse, Limitationen und einem Ausblick auf zukünftige Erweiterungen.
+
+<!-- ================= 2. Theoretischer Hintergrund ================= -->
+
+# Theoretischer Hintergrund {#sec-theorie}
+
+## Kundensegmentierung im E-Commerce (kurz) {#sec-segmentierung-ecommerce}
+<!-- Grundlagen und Bedeutung der Segmentierung -->
+
+## Clustering als Mittel zum Zweck {#sec-clustering-werkzeug}
+<!-- Verfahren als Werkzeuge zur Segmentbildung -->
+
+## Validierung (Silhouette, DBCV) als Qualitätskontrolle {#sec-validierung}
+<!-- Rolle der internen Validierungsmethoden -->
+
+
+<!-- ================= 3. Datenbasis und Aufbereitung ================= -->
+
+# Datenbasis und Aufbereitung {#sec-datenbasis}
+
+## Datensätze Online Retail II / RetailRocket {#sec-datensaetze}
+<!-- Beschreibung und Relevanz der Datensätze -->
+
+## Feature Engineering (RFM, Frequenz, Warenkorb) {#sec-feature-engineering}
+<!-- Abgeleitete Merkmale zur Segmentierung -->
+
+## Bereinigung, Skalierung {#sec-bereinigung}
+<!-- Vorverarbeitungsschritte -->
+
+<!-- ================= 4. Segmentierung ================= -->
+
+# Segmentierung {#sec-segmentierung}
+
+## K-Means (kurz als baseline) {#sec-kmeans}
+<!-- Geometriebasiertes Verfahren für kompakte Cluster -->
+
+## HDBSCAN (kurz für dichtebasierte Strukturen) {#sec-hdbscan}
+<!-- Dichtebasiertes Verfahren für arbiträre Clusterformen -->
+
+## Validierung mit Silhouette und DBCV (nur Ergebnisse) {#sec-validierung-ergebnisse}
+<!-- Vergleich der Gütemaße -->
+
+<!-- ================= 5. Ergebnisse: Kundensegmente ================= -->
+
+# Ergebnisse: Kundensegmente {#sec-ergebnisse}
+
+## Clusterprofile (Tabellen, Kennzahlen) {#sec-clusterprofile}
+<!-- Segmentgrößen, RFM-Werte, Umsatzanteile -->
+
+## Personas (kurze Beschreibungen pro Segment) {#sec-personas}
+<!-- Typische Kundenprofile und Verhaltensweisen -->
+
+## Visualisierungen (z. B. Radarplots, Heatmaps) {#sec-visualisierungen}
+<!-- Grafische Aufbereitung der Unterschiede -->
+
+<!-- ================= 6. Implikationen für Marketing und CRM ================= -->
+
+# Implikationen für Marketing und CRM {#sec-marketing}
+
+## Mögliche Maßnahmen je Segment {#sec-massnahmen}
+<!-- Marketingstrategien und CRM-Maßnahmen -->
+
+## Nutzen für Kampagnensteuerung und Kundenbindung {#sec-nutzen}
+<!-- Geschäftlicher Mehrwert der Segmentierung -->
+
+## Grenzen und Risiken {#sec-grenzen}
+<!-- Limitationen und potenzielle Probleme -->
+
+<!-- ================= 7. Fazit und Ausblick ================= -->
+
+# Fazit und Ausblick {#sec-fazit}
+
+## Beantwortung der Forschungsfrage {#sec-forschungsfrage}
+
+Die Arbeit hat gezeigt, dass sich in E-Commerce-Daten mehrere klar unterscheidbare Segmente identifizieren lassen. Diese unterscheiden sich sowohl in quantitativen Kennzahlen wie Kaufhäufigkeit, Umsatzhöhe und Sortimentspräferenzen als auch in charakteristischen Verhaltensmustern. Mit den aufbereiteten Profilen, Personas und Visualisierungen konnten die Unterschiede verständlich gemacht und in praxisnahe Maßnahmen überführt werden. Damit wurde die Forschungsfrage beantwortet, wie Segmentstrukturen in E-Commerce-Daten sichtbar gemacht und für Marketing und CRM nutzbar aufbereitet werden können.
+
+Die eingesetzten Verfahren haben dabei ihren Zweck erfüllt. K-Means und HDBSCAN dienten als Werkzeuge, um Strukturen sichtbar zu machen. Silhouette und DBCV überprüften die Qualität der Ergebnisse. Die Hopkins-Statistik wurde ergänzend einbezogen, zeigte erwartungsgemäß kaum Clusterfähigkeit und machte deutlich, dass manche Validierungsansätze in diesem Kontext methodisch nur begrenzt aussagekräftig sind.
+
+## Limitationen {#sec-limitationen}
+
+Die Ergebnisse basieren auf internen Validitätsmaßen und bieten keinen direkten Nachweis, ob segmentbasierte Maßnahmen in der Praxis zu besseren Erfolgen führen. Auch die Datenbasis weist Einschränkungen auf. Transaktions- und Eventdaten sind häufig unbalanciert, enthalten Ausreißer und bilden nicht alle relevanten Kundenmerkmale ab. Die Generalisierbarkeit auf andere Märkte oder Shops ist daher begrenzt.
+
+## Ausblick (z. B. Text Mining, Echtzeit-Segmentierung) {#sec-ausblick}
+
+Für zukünftige Arbeiten empfiehlt sich die Ergänzung um externe Validierung. A/B-Tests und Uplift-Analysen könnten zeigen, ob segmentierte Kampagnen tatsächlich bessere Ergebnisse liefern. Eine Erweiterung der Merkmalsbasis durch Text Mining von Kundenbewertungen oder die Analyse von Session-Daten könnte zusätzliche Differenzierung schaffen. Auch eine dynamische Segmentierung, die sich in Echtzeit an Veränderungen im Verhalten anpasst, wäre ein sinnvoller Schritt. Schließlich sollte die Segmentlogik direkt in CRM-Systeme integriert werden, um einen geschlossenen Kreislauf zwischen Analyse, Umsetzung und Erfolgsmessung zu schaffen.
+
+Was eine \gls{mfa} ist, wird im Glossar beschrieben.
+
+<!-- ================= Literaturverzeichnis ================= -->
+
+# Literaturverzeichnis {.unnumbered}
+
+::: {#refs}
+:::
+\pagestyle{literature}
+\markboth{Literaturverzeichnis}{Literaturverzeichnis}
+
+\clearpage
+
+<!-- ================= Anhangsverzeichnis-Header ================= -->
+
+::: {#sec-anhang}
+# Anhang {.unnumbered}
+:::
+\markboth{Anhang}{Anhang} 
+\thispagestyle{empty}
+\renewcommand{\thefigure}{A.\arabic{figure}}
+\setcounter{figure}{0}
+
+
+
+::: {#sec-anhangsverzeichnis}
+## Anhangsverzeichnis {.unnumbered}
+:::
+\pagestyle{appendixTOC}
+\noindent
+<!-- ================= Anhangsverzeichnis ================= -->
+
+
+**A** [Zero-Trust-Modell](#sec-anhangA) \dotfill  \pageref{sec-anhangA}
+
+&nbsp;&nbsp;&nbsp;**A.1** [Zero-Trust-Säulen](#sec-anhangA1) \dotfill  \pageref{sec-anhangA1}
+
+**B** [Erste Analyse der Daten](#sec-anhangB) \dotfill  \pageref{sec-anhangB}
+
+&nbsp;&nbsp;&nbsp;**B.1** [Ergebnisse der ersten Analyse](#sec-anhangB1) \dotfill  \pageref{sec-anhangB1}
+ 
+
+
+
+
+
+\clearpage
+
+<!-- ================= Anhang ================= -->
+\pagestyle{appendix} 
+::: {#sec-anhangA}
+# A: Zero-Trust-Modell {.unnumbered}
+:::
+\markboth{Anhang A: Zero-Trust-Modell}{}
+
+::: {#sec-anhangA1}
+## A1: Zero-Trust-Säulen {.unnumbered}
+:::
+
+\lorem
+
+\clearpage
+
+::: {#sec-anhangB}
+# B: Erste Analyse der Daten {.unnumbered}
+:::
+\markboth{Anhang B: Erste Analyse der Daten}{}
+
+\lorem
+
+
+::: {#sec-anhangB1}
+## B1: Lorem {.unnumbered}
+:::
+
+\lorem
+
+
+
+
+
+
+
+
+
+<!-- ================= Ende ================= -->

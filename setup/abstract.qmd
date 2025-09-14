@@ -1,0 +1,13 @@
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\thispagestyle{nohead}
+
+Kunden im E-Commerce verhalten sich sehr unterschiedlich in ihrer Kaufhäufigkeit, ihren Ausgaben und ihrer Reaktion auf Kampagnen. Für Unternehmen liegt darin eine große Chance, denn differenzierte Kundensegmente ermöglichen eine gezieltere Ansprache, nachhaltigere Bindung und wirksamere Sortimentsentscheidungen. Gleichzeitig stellt diese Vielfalt eine Herausforderung dar, da sich Strukturen in den Daten nicht unmittelbar erschließen und klassische Auswertungen oft oberflächlich bleiben.
+
+Diese Arbeit möchte die Forschungsfrage beantworten, welche Segmentstrukturen sich in E-Commerce-Daten verbergen und wie diese so beschrieben werden können, dass Marketing und CRM sie unmittelbar nutzen können. Clustering wird dabei nicht als Selbstzweck verstanden, sondern als Werkzeug, das Datenmuster sichtbar macht und in verständliche Profile übersetzt.
+
+Das Vorgehen orientiert sich am CRISP-DM-Modell. Durch Feature Engineering werden Kennzahlen wie Recency, Frequency und Monetary Value sowie Warenkorb- und Sortimentsmerkmale gebildet. Die Segmentierung erfolgt mit K-Means für kompakte Strukturen und HDBSCAN für dichtebasierte Cluster. Die Qualität wird mit dem Silhouette-Koeffizienten und dem DBCV-Index bewertet. Die Hopkins-Statistik wird ergänzend zur Prüfung der Clustertendenz eingesetzt, ihre Aussagekraft für hochdimensionale, sparse Daten jedoch kritisch eingeordnet.
+
+Die Ergebnisse zeigen mehrere unterscheidbare Segmente, die durch Kennzahlentabellen, Personas und Visualisierungen anschaulich dargestellt werden. Damit können Fachbereiche die Segmente für Kampagnen, Kundenbindungsprogramme und Sortimentsentscheidungen einsetzen. Die Arbeit zeigt, dass sich Segmentstrukturen in E-Commerce-Daten identifizieren, verständlich aufbereiten und in handlungsleitende Marketingmaßnahmen überführen lassen. Ein Ausblick skizziert die Ergänzung durch externe Validierung, Text-Mining und dynamische Segmentierungen.
+
+\clearpage
