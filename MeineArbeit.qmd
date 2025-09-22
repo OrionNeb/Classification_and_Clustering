@@ -37,6 +37,7 @@ format:
     toc-depth: 4
     number-sections: true
     self-contained: true  # Alle Ressourcen (Bilder, CSS, etc.) in einer Datei speichern
+    math: mathjax # oder: katex
     other-formats: ["pdf", "docx", "pptx"]
   docx:
     toc: false
@@ -176,9 +177,9 @@ Die Hopkins-Statistik prüft, ob ein Datensatz überhaupt eine Clustertendenz en
 
 Der Silhouette-Koeffizient bewertet die Kohäsion innerhalb von Clustern und die Separation zwischen Clustern. Er kombiniert also zwei Perspektiven: interne Homogenität und externe Abgrenzung. @tsiptsisDataMiningTechniques2010, S. 209 nennen die Silhouette als ein zentrales Kriterium der technischen Evaluation. @laiSilhouetteCoefficientbasedWeighting2025, S. 3063 ergänzen, dass sie ein objektives Maß sei, weil sie „both the cohesion within clusters and the separation between clusters“ berücksichtigt.  
 
-Es lassen sich eindimensionale und mehrdimensionale Ansätze unterscheiden. Eindimensionale Verfahren ordnen Kunden nach einem einzelnen Merkmal, meist Umsatz oder Profit. Ein klassisches Beispiel ist die Value-based Segmentation, bei der Kunden nach Wert geordnet und anschließend in Quantile eingeteilt werden (@tsiptsisDataMiningTechniques2010, S. 194, S. 219). Dieser Ansatz ist zwar leicht verständlich, bildet jedoch die Vielfalt des Kundenverhaltens nur eingeschränkt ab. Eine genauere Einordnung eindimensionaler Verfahren findet sich in [Anhang A.1: Eindimensionale Segmentierung](#sec-anhangA1).  
+Es lassen sich eindimensionale und mehrdimensionale Ansätze unterscheiden. Eindimensionale Verfahren ordnen Kunden nach einem einzelnen Merkmal, meist Umsatz oder Profit. Ein klassisches Beispiel ist die Value-based Segmentation, bei der Kunden nach Wert geordnet und anschließend in Quantile eingeteilt werden (@tsiptsisDataMiningTechniques2010, S. 194, S. 219). Dieser Ansatz ist zwar leicht verständlich, bildet jedoch die Vielfalt des Kundenverhaltens nur eingeschränkt ab. Eine genauere Einordnung eindimensionaler Verfahren findet sich in [Anhang A.1: Eindimensionale Segmentierung](#sec-anhangA.1).  
 
-Demgegenüber berücksichtigen mehrdimensionale Ansätze mehrere Merkmale gleichzeitig. Besonders etabliert ist die RFM-Analyse, die Recency, Frequency und Monetary Value kombiniert. @tsiptsisDataMiningTechniques2010, S. 337 schlagen vor, „to use the respective components as inputs in a clustering model and let the algorithm reveal the underlying natural groupings of customers“. Auf diese Weise entsteht ein mehrdimensionaler Merkmalsraum, in dem differenziertere Segmente sichtbar werden. Moderne Anwendungen erweitern RFM zudem um Variablen wie Warenkorbgrößen oder Sortimentspräferenzen. Eine detaillierte Übersicht zur RFM-Segmentierung findet sich in [Anhang A.2: Mehrdimensionale RFM-Segmentierung](#sec-anhangA2).
+Demgegenüber berücksichtigen mehrdimensionale Ansätze mehrere Merkmale gleichzeitig. Besonders etabliert ist die RFM-Analyse, die Recency, Frequency und Monetary Value kombiniert. @tsiptsisDataMiningTechniques2010, S. 337 schlagen vor, „to use the respective components as inputs in a clustering model and let the algorithm reveal the underlying natural groupings of customers“. Auf diese Weise entsteht ein mehrdimensionaler Merkmalsraum, in dem differenziertere Segmente sichtbar werden. Moderne Anwendungen erweitern RFM zudem um Variablen wie Warenkorbgrößen oder Sortimentspräferenzen. Eine detaillierte Übersicht zur RFM-Segmentierung findet sich in [Anhang A.2: Mehrdimensionale RFM-Segmentierung](#sec-anhangA.2).
 
 Für dichtebasierte Verfahren wie HDBSCAN ist der DBCV-Index geeignet. @moulaviDensityBasedClusteringValidation2014, S. 839 erklären, dass DBCV die „within and between-cluster density connectedness“ misst, während Rauschen explizit berücksichtigt wird. Der Vorteil liegt darin, dass dieses Maß auch für arbiträre Clusterformen robust anwendbar ist (@moulaviDensityBasedClusteringValidation2014, S. 845).  
 
@@ -217,31 +218,26 @@ Die Kombination beider Perspektiven erlaubt es, sowohl verhaltensnahe Muster (Re
 
 ## Feature Engineering (RFM, Frequenz, Warenkorb) {#sec-feature-engineering}
 
-Ein zentrales Element des Feature Engineerings ist die Ableitung der klassischen RFM-Variablen (Recency, Frequency, Monetary). Diese gelten im Handel als Standardmethode zur Kundensegmentierung, da sie Kundenverhalten kompakt und interpretierbar zusammenfassen [@tsiptsisDataMiningTechniques2010, S. 333–338]. \smallskip 
+Damit Segmentstrukturen in den Daten sichtbar werden, müssen aus den Rohdaten aussagekräftige Merkmale abgeleitet werden. Dieser Schritt wird als Feature Engineering bezeichnet [@tsiptsisDataMiningTechniques2010, S. 337].
 
-- Recency beschreibt die Zeitspanne seit dem letzten Kauf.  
-- Frequency gibt an, wie viele Käufe in einem bestimmten Zeitraum erfolgen.  
-- Monetary steht für das Umsatzvolumen, das in diesem Zeitraum erzielt wurde. 
+Im Zentrum stehen die klassischen RFM-Variablen, die drei grundlegende Dimensionen des Kaufverhaltens beschreiben:  
+- *Recency* erfasst den zeitlichen Abstand seit dem letzten Kauf,  
+- *Frequency* gibt die Anzahl der Käufe in einem bestimmten Zeitraum wieder,  
+- *Monetary* misst den Umsatz im selben Zeitraum.  
 
-\noindent Die RFM-Logik wird in dieser Arbeit um zusätzliche Variablen erweitert: \smallskip
+Durch die Kombination dieser Dimensionen können Kunden in Zellen eingeteilt werden, die Verhalten und Wert systematisch abbilden. So steht etwa die Zelle 555 für besonders wertvolle Kunden (jüngster Kauf, hohe Frequenz, hoher Umsatz), während 151 Kunden mit langer Kaufpause, geringer Frequenz und geringem Umsatz beschreibt [@tsiptsisDataMiningTechniques2010, S. 334–338]. Diese Zellenlogik ist leicht verständlich, skaliert aber schlecht, da mit Quintilen bis zu 125 Klassen entstehen können.
 
-- Warenkorbmerkmale, z. B. durchschnittliche Warenkorbgröße oder Vielfalt der Kategorien.  
-- Zeitorientierte Muster, z. B. bevorzugte Einkaufszeitpunkte (Wochentag, Uhrzeit).  
-
-\noindent Damit entsteht ein erweitertes Merkmalsset, das sowohl wertorientierte als auch verhaltensnahe Aspekte des Kundenhandelns abbildet. Dieses Set bildet die Grundlage für die nachfolgende Clusteranalyse mit K-Means und HDBSCAN.  
-
-Zur Berechnung kann auch ein kontinuierlicher RFM-Score herangezogen werden, der die Dimensionen zu einer gewichteten Kennzahl kombiniert:
-
+Um diese Komplexität zu reduzieren, lässt sich RFM in eine kontinuierliche Kennzahl überführen. Dabei werden die drei Dimensionen zu einem gewichteten Summenscore zusammengefasst:
 $$
-RFM\_score = (recency\_score \times w_R) + (frequency\_score \times w_F) + (monetary\_score \times w_M)
+\text{RFM-Score} = w_R \cdot R + w_F \cdot F + w_M \cdot M,
+\qquad w_R + w_F + w_M = 1 .
 $$
 
-Die Gewichtung $w_R$, $w_F$ und $w_M$ hängt vom Anwendungskontext ab und kann durch Expertenschätzung oder empirische Optimierung bestimmt werden.  
+Der Vorteil dieser Verdichtung liegt in der besseren Vergleichbarkeit: Statt einer Vielzahl von RFM-Zellen entsteht eine eindimensionale Metrik, die sich leicht sortieren, gruppieren und auch als Input für Clusterverfahren verwenden lässt.
 
-Eine vertiefte Darstellung der RFM-Segmentierung, einschließlich der klassischen Zellstruktur (z. B. 5 × 5 × 5 = 125 Segmente), befindet sich in [Anhang A.3: Retail-Segmentierung mit RFM](#sec-anhangA3).  
+Die Gewichtung der Parameter ist flexibel gestaltbar. Unternehmen können etwa den zeitlichen Abstand (Recency) stärker gewichten, wenn Reaktivierungskampagnen im Vordergrund stehen, oder die Häufigkeit (Frequency), wenn Loyalität im Fokus liegt. Durch Variation der Gewichte $w_R$, $w_F$ und $w_M$ wird unmittelbar sichtbar, wie sich die Kundenklassifikation verschiebt [@tsiptsisDataMiningTechniques2010, S. 338].
 
-
-
+Eine anschauliche Visualisierung der RFM-Zellen und ihrer logischen Struktur findet sich im [Anhang A.3: Retail-Segmentierung mit RFM](#sec-anhangA.3). Dort wird die Systematik in Form eines Würfels dargestellt und um weitere Merkmale (z. B. Warenkorbgrößen, Sortimentsvielfalt) ergänzt, die im praktischen Einsatz zusätzliche Differenzierung ermöglichen.
 
 ## Bereinigung, Skalierung {#sec-bereinigung}
 
@@ -377,6 +373,7 @@ Dieser Anhang erläutert die RFM-Segmentierung als ein klassisches Instrument de
 
 Eindimensionale Verfahren klassifizieren Kunden nach einem einzigen Kriterium, etwa Umsatz oder Profit. Typisch ist die Value-based Segmentation, bei der Kunden nach Wert geordnet und in Quantile eingeteilt werden (@tsiptsisDataMiningTechniques2010, S. 193, S. 219). Solche Verfahren sind einfach zu implementieren und liefern schnelle Ergebnisse, bilden jedoch die Komplexität des Kundenverhaltens nicht vollständig ab.
 
+
 ::: {#sec-anhangA.2}
 ## A.2: Mehrdimensionale RFM-Segmentierung {.unnumbered}
 :::
@@ -384,107 +381,113 @@ Eindimensionale Verfahren klassifizieren Kunden nach einem einzigen Kriterium, e
 Die RFM-Analyse kombiniert drei Dimensionen: Recency, Frequency und Monetary Value. @tsiptsisDataMiningTechniques2010, S. 336–345 beschreiben RFM als bewährten Ansatz, um Kundenwerte differenziert abzubilden. Neben der klassischen Zellenbildung (z. B. Quintile) kann RFM auch als Input für Clustering genutzt werden. Dadurch entstehen mehrdimensionale Segmente, die sich deutlich voneinander unterscheiden. Erweiterungen des Modells beziehen zusätzliche Merkmale wie Warenkorbgrößen oder Sortimentspräferenzen ein, um die Aussagekraft weiter zu erhöhen.
 
 ::: {#sec-anhangA.3}
-## A.3: Retail-Segmentierung mit RFM {.unnumbered}
+## A.3: Mehrdimensionale RFM-Segmentierung {.unnumbered}
 :::
 
-Die RFM-Segmentierung ist eine im Handel etablierte Methode, um Kunden anhand von Kaufhistorien zu klassifizieren. Tsiptsis und Chorianopoulos [@tsiptsisDataMiningTechniques2010, S. 334–338] beschreiben sie als besonders geeignet, um Verhalten in standardisierte Segmente zu überführen.  
+Ergänzend zur theoretischen Einführung im Hauptteil wird hier die Zellenlogik von RFM veranschaulicht.
 
-**Dimensionen:**
-- *Recency:* Zeit seit dem letzten Einkauf (z. B. Tage, Wochen, Monate).  
-- *Frequency:* Anzahl der Einkäufe im Analysezeitraum.  
-- *Monetary:* Umsatzsumme im Analysezeitraum.  
+Die folgende programmgenerierte Darstellung zeigt alle möglichen Kombinationen von *Recency* und *Frequency* auf einer Ebene mit festem *Monetary*-Wert. Die Zelle 351 ist dabei als Beispiel hervorgehoben.  
 
-Typischerweise werden die Werte in **Quantile** (z. B. Quintile) eingeteilt. So entstehen R-, F- und M-Scores zwischen 1 und 5. Die Kombination der drei Scores ergibt bis zu 125 RFM-Zellen. Beispiel:  
-- Zelle **555** = Top-Kunden (jüngster Kauf, höchste Frequenz, höchster Umsatz).  
-- Zelle **151** = Wenig aktive Kunden (letzter Kauf lange her, niedrige Frequenz, geringer Umsatz).  
+```{python}
+#| eval: true
+#| echo: true
+#| results: hide
+#| warning: false
+#| message: false
+#| fig-width: 10
+#| fig-height: 6
+#| fig-cap: "Eigene Darstellung eines RFM-Würfels"
+#| fig-alt: "3D-Darstellung eines RFM-Würfels"
+#| code-fold: true
+#| code-summary: "Code für RFM-Visualisierung anzeigen"
 
-![Eigene Darstellung der RFM-Zellenlogik](img/rfm-cells.png){#fig-rfm width=80%}  
-
-**Vor- und Nachteile:**
-- Vorteil: leicht verständlich und direkt interpretierbar.  
-- Nachteil: Hohe Anzahl an möglichen Zellen (z. B. 125 bei Quintilen) führt zu Unübersichtlichkeit.  
-
-Eine Alternative ist die Aggregation zu einem **kontinuierlichen RFM-Score** (vgl. Formel in Kapitel 3), der weniger granular, aber handhabbarer ist.  
-
-Diese theoretische Fundierung verdeutlicht, warum RFM im Handel bis heute ein zentrales Verfahren darstellt und zugleich als Ausgangspunkt für weiterführende Clustering-Verfahren (z. B. K-Means, HDBSCAN) genutzt wird.
-
-```{python echo=TRUE, EVAL=TRUE, INCLUDE=TRUE}
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from mpl_toolkits.mplot3d import Axes3D
 
-def plot_rfm_cube_with_front_labels():
-    """
-    Erstellt eine 3D-Darstellung des RFM-Würfels mit:
-    - Zahlen auf der Vorderseite (sichtbare Frontfläche von 111 bis 551).
-    - Vollständiger Würfelstruktur und korrekt sichtbaren Hilfslinien.
-    """
-    # Dimensionen des Würfels
-    recency_levels = 5
-    frequency_levels = 5
-    monetary_levels = 5  # Vollständiger Würfel, aber nur die Frontseite wird beschriftet
+fig = plt.figure(figsize=(12, 9))
+ax = fig.add_subplot(111, projection='3d')
 
-    # Erstellen der 3D-Grafik
-    fig = plt.figure(figsize=(10, 8))
-    ax = fig.add_subplot(111, projection='3d')
+# RFM-Dimensionen
+recency_range = range(1, 6)     # 1-5
+frequency_range = range(1, 6)   # 1-5
+monetary_level = 1              # Feste Ebene bei Z=1
 
-    # Iterieren durch die Werte und Quader zeichnen
-    for r in range(1, recency_levels + 1):  # Recency
-        for f in range(1, frequency_levels + 1):  # Frequency
-            for m in range(1, monetary_levels + 1):  # Monetary
-                x, y, z = r - 0.5, f - 0.5, m - 0.5
+# Vollständige Ebene bei Monetary = 1
+for r in recency_range:
+    for f in frequency_range:
+        code = f"{r}{f}{monetary_level}"
 
-                # Quader zeichnen
-                vertices = [
-                    [x, y, z],
-                    [x + 1, y, z],
-                    [x + 1, y + 1, z],
-                    [x, y + 1, z],
-                    [x, y, z + 1],
-                    [x + 1, y, z + 1],
-                    [x + 1, y + 1, z + 1],
-                    [x, y + 1, z + 1],
-                ]
-                faces = [
-                    [vertices[j] for j in [0, 1, 5, 4]],  # Unterseite
-                    [vertices[j] for j in [2, 3, 7, 6]],  # Oberseite
-                    [vertices[j] for j in [0, 3, 7, 4]],  # Seite 1
-                    [vertices[j] for j in [1, 2, 6, 5]],  # Seite 2
-                    [vertices[j] for j in [0, 1, 2, 3]],  # Vorderseite
-                    [vertices[j] for j in [4, 5, 6, 7]],  # Rückseite
-                ]
-                ax.add_collection3d(Poly3DCollection(faces, alpha=1.0, edgecolor='k', facecolor='skyblue'))
+        # Hervorhebung für Code "351"
+        if code == "351":
+            color = "red"           # Besondere Hervorhebung in rot
+            text_color = "white"    # Weiße Schrift auf rot
+        else:
+            color = "lightgrey"
+            text_color = "black"    # Schwarze Schrift auf grau
 
-                # Zahlen nur auf der sichtbaren Frontseite (Monetary = 1)
-                if m == 1:
-                    label = f"{r}{f}{m}"
-                    ax.text(r - 0.5 + 0.5, f - 0.5 + 0.5, m - 1, label,
-                            color='black', fontsize=10, ha='center', va='center', fontweight='bold')
+        # Korrigierte Positionierung: x=r, y=f, z=monetary_level
+        ax.bar3d(
+            x=r-0.5, y=f-0.5, z=monetary_level-0.1,  # Startposition (Ecke des Würfels)
+            dx=1, dy=1, dz=0.2,                       # Größe
+            color=color, edgecolor='black', alpha=0.9  # Weniger transparent
+        )
+       
+        ax.text(
+            r, f, monetary_level + 0.05,  # Leicht über der Oberfläche
+            code,
+            color=text_color,
+            ha='center', va='center',
+            fontsize=14,               # Noch größere Schrift
+            weight='bold',             # ALLE Texte fett
+            zorder=100                 # Text immer im Vordergrund
+        )
 
-    # Achsentitel und Achsenlimits
-    ax.set_title("RFM-Würfel", fontsize=16, fontweight='bold', pad=20)
-    ax.set_xlabel("Recency", fontsize=12, labelpad=15)
-    ax.set_ylabel("Frequency", fontsize=12, labelpad=15)
-    ax.set_zlabel("Monetary", fontsize=12, labelpad=15)
-    ax.set_xlim(0, recency_levels)
-    ax.set_ylim(0, frequency_levels)
-    ax.set_zlim(0, monetary_levels)
+# Achsentitel (korrekte Zuordnung)
+ax.set_xlabel("Recency", fontsize=12, weight='bold')
+ax.set_ylabel("Frequency", fontsize=12, weight='bold')
+ax.set_zlabel("Monetary", fontsize=12, weight='bold')
 
-    # Achsenticks anpassen
-    ax.set_xticks(range(1, recency_levels + 1))
-    ax.set_yticks(range(1, frequency_levels + 1))
-    ax.set_zticks(range(1, monetary_levels + 1))
+# Achsenticks
+ax.set_xticks(range(1, 6))
+ax.set_xticklabels(['1', '2', '3', '4', '5'])
+ax.set_yticks(range(1, 6))
+ax.set_yticklabels(['1', '2', '3', '4', '5'])
+ax.set_zticks(range(1, 6))
 
-    # Kamera-Perspektive anpassen
-    ax.view_init(elev=20, azim=30)
+# Achsgrenzen
+ax.set_xlim(0.5, 5.5)
+ax.set_ylim(0.5, 5.5)
+ax.set_zlim(0.5, 5.5)
 
-    # Zeigen der Grafik
-    plt.show()
+# Seitenverhältnis & Perspektive
+ax.set_box_aspect([1, 1, 1])  # Gleiche Proportionen
+ax.view_init(elev=25, azim=45)  # Bessere Sicht
+ax.grid(True)
 
-# Aufrufen der Funktion
-plot_rfm_cube_with_front_labels()
+# Überschrift mit RFM-Score Berechnung
+ax.set_title("RFM-Würfel: Kontinuierlicher Score-Ansatz\n" +
+             "RFM Score = (R×wR) + (F×wF) + (M×wM)\n" +
+             "Ebene bei Monetary = 1 | Code 351 hervorgehoben", 
+             fontsize=13, weight='bold', pad=20)
 
-
+# Layout-Anpassung ohne Warnung
+plt.subplots_adjust(left=0.1, right=0.9, top=0.85, bottom=0.1)  # Mehr Platz für Titel
+plt.show()
 ```
+
+\noindent Die Abbildung zeigt einen zweidimensionalen Ausschnitt des RFM-Modells in Würfelform: 
+
+- Die x-Achse steht für *Recency* (Zeit seit dem letzten Kauf).
+- Die y-Achse repräsentiert *Frequency* (Kaufhäufigkeit).
+- Die z-Achse bildet *Monetary* (Umsatzhöhe) ab. In dieser Darstellung ist die Ebene mit *Monetary = 1* ausgewählt.
+
+\medskip
+
+Jede Zelle im Würfel steht für eine Kombination dieser drei Dimensionen und wird durch einen dreistelligen Code gekennzeichnet (z. B. 351 = Recency 3, Frequency 5, Monetary 1).  
+
+Die hervorgehobene Zelle 351 veranschaulicht exemplarisch, wie einzelne Kundengruppen identifiziert werden können. Damit wird deutlich, dass das RFM-Schema ein Raster bildet, das eine differenzierte Beschreibung von Kundenverhalten ermöglicht.
+
+
 
 \clearpage
 
