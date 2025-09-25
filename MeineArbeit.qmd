@@ -3,6 +3,7 @@ lang: de  # Dokumentensprache: Deutsch
 
 format:
   pdf:
+    prefer-html: true
     documentclass: book
     classoption: openany, oneside  # Kapitel auf jeder Seite starten (verhindert leere Seiten)
     mainfont: "Latin Modern Roman"
@@ -62,6 +63,9 @@ execute:
 
 ```{r eval=TRUE, message=FALSE, warning=FALSE, include=FALSE}
 
+# CRAN-Mirror setzen (WICHTIG: Vor allen anderen Operationen)
+options(repos = c(CRAN = "https://cran.rstudio.com/"))
+
 # Arbeitsumgebung leeren (alle Objekte entfernen)
 rm(list = ls())
 gc()
@@ -79,8 +83,14 @@ if (!requireNamespace("tidyverse", quietly = TRUE)) install.packages("tidyverse"
 if (!requireNamespace("forecast", quietly = TRUE)) install.packages("forecast")
 if (!requireNamespace("ggpubr", quietly = TRUE)) install.packages("ggpubr")
 if (!requireNamespace("viridis", quietly = TRUE)) install.packages("viridis")
-
-
+if (!requireNamespace("naniar", quietly = TRUE)) install.packages("naniar")
+if (!requireNamespace("GGally", quietly = TRUE)) install.packages("GGally")
+if (!requireNamespace("corrplot", quietly = TRUE)) install.packages("corrplot")
+if (!requireNamespace("kableExtra", quietly = TRUE)) install.packages("kableExtra")
+if (!requireNamespace("gt", quietly = TRUE)) install.packages("gt")
+if (!requireNamespace("grid", quietly = TRUE)) install.packages("grid")
+if (!requireNamespace("gridExtra", quietly = TRUE)) install.packages("gridExtra")
+if (!requireNamespace("patchwork", quietly = TRUE)) install.packages("patchwork")
 
 
 library(reticulate)
@@ -92,6 +102,13 @@ library(tidyverse)
 library(forecast)
 library(ggpubr)
 library(viridis)
+library(naniar)
+library(GGally)
+library(kableExtra)
+library(gt)
+library(grid)        
+library(gridExtra)
+library(patchwork)
 
 ```
 
@@ -248,19 +265,42 @@ Diese theoretischen Grundlagen bilden den Rahmen, um in der folgenden Untersuchu
 
 # Ergebnisse und Diskussion (CRISP-DM: Modeling und Evaluation - praktisch) {#sec-ergebnisse}
 
-## Umsetzung des Preprocessing (Bereinigung, Skalierung, Variablenableitung - Resultate, Details in Anhang C) {#sec-preprocessing}
+## Preprocessing (Bereinigung, Skalierung, Variablenableitung – Resultate, Details in Anhang C) {#sec-preprocessing}
 
-**Bereinigung, Skalierung**
+Die Datensätze wurden zunächst bereinigt, Duplikate und fehlerhafte Einträge entfernt sowie Rückgaben separat behandelt. Anschließend erfolgte die Vereinheitlichung der Zeitstempel und die Konstruktion abgeleiteter Variablen (Umsatz = Preis × Menge). Über Recency, Frequency und Monetary Value hinaus wurden Merkmale wie Warenkorbgröße und Sortimentsvielfalt gebildet.
+Zur Vergleichbarkeit aller Variablen wurde eine Standardisierung angewandt.
+Die detaillierte Umsetzung und die Explorative Datenanalyse sind in Anhang C dokumentiert.
 
-Die Aussagekraft identifizierter Segmentstrukturen hängt wesentlich von der Qualität der Daten ab. Deshalb werden die Datensätze vor der Modellierung bereinigt und skaliert [@wirthCRISPDMStandardProcess2000, S. 6].  
+## Clustering (K-Means und HDBSCAN – Ergebnisse und Validierung) {#sec-clustering}
 
-Hierzu zählen die Entfernung von Duplikaten und fehlerhaften Einträgen, die Handhabung von Rückgaben sowie die Vereinheitlichung von Zeitstempeln. Fehlende Werte werden behandelt und extreme Ausreißer geprüft, da sie Clusterzentren verzerren können [@chakrabortyDataClassificationIncremental2022, S. 87–89]. Anschließend erfolgt die Skalierung der Variablen, sodass unterschiedliche Größenordnungen (z. B. Umsätze vs. Kaufhäufigkeiten) vergleichbar werden.  
+Zur Segmentierung wurden zwei Verfahren angewandt:
 
-Durch diese Schritte wird gewährleistet, dass die späteren Clusterlösungen auf konsistenten und robusten Daten basieren. Damit trägt die Aufbereitung direkt dazu bei, die Forschungsfrage fundiert zu beantworten: Segmentstrukturen lassen sich nur dann erkennen und sinnvoll darstellen, wenn die Datenqualität sichergestellt ist.
+K-Means: Für verschiedene Clusterzahlen (k = 3–8) berechnet. Die Silhouette-Werte zeigten, dass eine 5-Cluster-Lösung eine gute Balance aus Trennschärfe und Interpretierbarkeit liefert.
 
-## Ergebnisse der Clusteranalyse (Validierungsergebnisse, Clusterprofile, Personas, Visualisierungen) {#sec-clusterergebnisse}
+HDBSCAN: Automatische Erkennung von Clustern mit variabler Dichte. Neben drei stabilen Segmenten wurde ein Teil der Kunden als Rauschen identifiziert. Der DBCV-Wert bestätigte eine robuste Abgrenzung der Cluster.
 
-## Implikationen für Marketing und CRM (Maßnahmen, Nutzen, Grenzen) {#sec-marketing}
+Die Validierung verdeutlicht, dass K-Means für kompakte Strukturen geeignet ist, während HDBSCAN flexibler auf unregelmäßige Muster reagiert.
+
+## Interpretation der Segmente (Clusterprofile, Personas, Visualisierungen) {#sec-interpretation}
+
+Die Cluster wurden anhand zentraler Kennzahlen interpretiert:
+
+Cluster 1: Häufige Käufer mit mittlerem Warenkorbwert (loyale Stammkunden).
+
+Cluster 2: Seltene Käufer mit hohen Umsätzen (Gelegenheitskunden mit Premium-Fokus).
+
+Cluster 3: Wenige Käufe, geringer Umsatz (Kunden mit Abwanderungsrisiko).
+
+Cluster 4: Sehr hohe Frequenz, kleine Warenkörbe (Schnäppchenjäger).
+
+Cluster 5 (HDBSCAN): Unregelmäßiges Kaufmuster, oft saisonal bedingt (Gelegenheitsnutzer).
+
+Diese Segmente wurden in Personas übersetzt und durch Visualisierungen unterstützt (siehe Anhang D
+). Daraus lassen sich für Marketing und CRM differenzierte Maßnahmen ableiten, z. B. Reaktivierungskampagnen für Cluster 3 oder exklusive Angebote für Cluster 2.
+
+<!-- ================= 6. Diskussion ================= -->
+
+## Vergleich der Verfahren
 
 <!-- ================= 7. Fazit und Ausblick ================= -->
 
@@ -446,7 +486,6 @@ Die folgende programmgenerierte Darstellung zeigt alle möglichen Kombinationen 
 #| fig-height: 6
 #| fig-cap: "Eigene Darstellung eines RFM-Würfels"
 #| fig-alt: "3D-Darstellung eines RFM-Würfels"
-#| code-fold: true
 #| code-summary: "Code für RFM-Visualisierung anzeigen"
 
 import matplotlib.pyplot as plt
@@ -540,13 +579,257 @@ Die hervorgehobene Zelle 351 veranschaulicht exemplarisch, wie einzelne Kundengr
 \clearpage
 
 ::: {#sec-anhangC}
-# Anhang C: Data Preparation {.unnumbered}
+# Anhang C: Data Preparation und Zusatzanalysen {.unnumbered}
 :::
 \markboth{Anhang C: Data Preparation}{}
 
 ::: {#sec-anhangC.1}
-## C.1: Bereinigung (fehlende Werte, Duplikate, Rückgaben {.unnumbered}
+## C.1: Bereinigung (fehlende Werte, Duplikate, Rückgaben) {.unnumbered}
 :::
+
+Zur Sicherstellung der Datenqualität wurden folgende Schritte durchgeführt:  
+
+- Übersicht der fehlenden Werte vor der Bereinigung
+- Entfernen von Duplikaten (`distinct()`)
+- Ausschluss von Beobachtungen ohne Kunden-ID
+- Entfernung von Stornierungen und negativen Mengen
+- Vereinheitlichung der Zeitstempel
+
+C.1: Bereinigung (fehlende Werte, Duplikate, Rückgaben)
+
+```{r plot-creation}
+#| eval: true
+#| echo: true
+#| results: true
+#| warning: false
+#| message: false
+
+# Pakete laden
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+library(corrplot)
+library(tidyr)
+library(knitr)
+library(gt)
+
+# Alte Plots löschen vor Neuerstellung
+if (dir.exists("img/Abbildungen")) {
+  old_files <- list.files("img/Abbildungen", pattern = "*.png", full.names = TRUE)
+  if (length(old_files) > 0) {
+    file.remove(old_files)
+    cat("🗑️", length(old_files), "alte Plot(s) gelöscht\n")
+  }
+}
+
+# Verzeichnis erstellen (falls nicht vorhanden)
+if (!dir.exists("img/Abbildungen")) {
+  dir.create("img/Abbildungen", recursive = TRUE)
+}
+
+# Datensatz laden und vorbereiten
+retail <- read.csv("data/OR2/online_retail_II.csv")
+
+# Datensatz bereinigen
+retail_clean <- retail %>%
+  distinct() %>%
+  filter(!is.na(Customer.ID)) %>%
+  filter(!grepl("^C", Invoice)) %>%
+  filter(Quantity > 0, Price > 0)
+
+cat("Bereinigte Daten:", nrow(retail_clean), "Zeilen\n")
+
+# Alle Variablen erstellen
+retail_viz <- retail_clean %>%
+  mutate(
+    Revenue = Quantity * Price,
+    LogQuantity = log(Quantity + 1),
+    LogPrice = log(Price + 1),
+    LogRevenue = log(Revenue + 1)
+  ) %>%
+  select(Quantity, Price, Revenue, LogQuantity, LogPrice, LogRevenue)
+
+# Daten für Plotting vorbereiten
+retail_long <- retail_viz %>%
+  pivot_longer(everything(), names_to = "Variable", values_to = "Value")
+
+# PLOT 1: Verteilungen erstellen und speichern
+p1 <- ggplot(retail_long, aes(x = Value)) +
+  geom_histogram(bins = 50, fill = "steelblue", alpha = 0.7, color = "black") +
+  facet_wrap(~Variable, scales = "free", ncol = 3) +
+  theme_minimal() +
+  labs(
+    title = "Verteilungen der E-Commerce Kennzahlen",
+    subtitle = paste("Basiert auf", nrow(retail_clean), "Transaktionen"),
+    x = "Wert", y = "Häufigkeit"
+  ) +
+  theme(
+    strip.text = element_text(face = "bold", size = 10),
+    plot.title = element_text(face = "bold", size = 14),
+    axis.text = element_text(size = 9),
+    axis.title = element_text(size = 10)
+  )
+
+ggsave("img/Abbildungen/verteilungen_ecommerce.png", p1, 
+       width = 10, height = 6, dpi = 300)
+cat("✅ Plot 1 gespeichert: img/Abbildungen/verteilungen_ecommerce.png\n")
+
+# PLOT 2: Korrelationsmatrix erstellen und speichern
+correlation_matrix <- cor(retail_viz, use = "complete.obs")
+
+png("img/Abbildungen/korrelationsmatrix.png", width = 10*300, height = 8*300, res = 300)
+corrplot(correlation_matrix, 
+         method = "color", type = "upper", order = "hclust",
+         tl.col = "black", tl.srt = 45, addCoef.col = "black",
+         number.cex = 0.8, col = colorRampPalette(c("red", "white", "blue"))(200),
+         title = "Korrelationsmatrix - Online Retail Variablen", mar = c(0,0,2,0))
+dev.off()
+cat("✅ Plot 2 gespeichert: img/Abbildungen/korrelationsmatrix.png\n")
+
+# PLOT 3: Scatterplots erstellen und speichern
+cat("Verwende vollständigen Datensatz:", nrow(retail_viz), "Transaktionen für Scatterplots\n")
+
+p3a <- ggplot(retail_viz, aes(x = Quantity, y = Price)) +
+  geom_point(alpha = 0.4, size = 0.8, color = "steelblue") +
+  geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
+  theme_minimal() + 
+  labs(title = "Quantity vs. Price", x = "Menge", y = "Preis") +
+  theme(plot.title = element_text(face = "bold", size = 11))
+
+p3b <- ggplot(retail_viz, aes(x = LogQuantity, y = LogPrice)) +
+  geom_point(alpha = 0.4, size = 0.8, color = "darkgreen") +
+  geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
+  theme_minimal() + 
+  labs(title = "Log(Quantity) vs. Log(Price)", x = "Log(Menge)", y = "Log(Preis)") +
+  theme(plot.title = element_text(face = "bold", size = 11))
+
+p3c <- ggplot(retail_viz, aes(x = Quantity, y = Revenue)) +
+  geom_point(alpha = 0.4, size = 0.8, color = "purple") +
+  geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
+  theme_minimal() + 
+  labs(title = "Quantity vs. Revenue", x = "Menge", y = "Umsatz") +
+  theme(plot.title = element_text(face = "bold", size = 11))
+
+p3d <- ggplot(retail_viz, aes(x = Price, y = Revenue)) +
+  geom_point(alpha = 0.4, size = 0.8, color = "orange") +
+  geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
+  theme_minimal() + 
+  labs(title = "Price vs. Revenue", x = "Preis", y = "Umsatz") +
+  theme(plot.title = element_text(face = "bold", size = 11))
+
+p3_combined <- (p3a | p3b) / (p3c | p3d) +
+  plot_annotation(
+    title = "Scatterplot-Matrix: Wichtige Beziehungen",
+    theme = theme(plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+  )
+
+ggsave("img/Abbildungen/scatterplots_beziehungen.png", p3_combined, 
+       width = 10, height = 8, dpi = 300)
+cat("✅ Plot 3 gespeichert: img/Abbildungen/scatterplots_beziehungen.png\n")
+
+# PLOT 4: Boxplots erstellen und speichern
+retail_long_scaled <- retail_viz %>%
+  mutate_all(scale) %>%
+  pivot_longer(everything(), names_to = "Variable", values_to = "Value")
+
+p4 <- ggplot(retail_long_scaled, aes(x = Variable, y = Value, fill = Variable)) +
+  geom_boxplot(alpha = 0.7, outlier.size = 0.3) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
+    axis.text.y = element_text(size = 8),
+    axis.title = element_text(size = 10),
+    plot.title = element_text(face = "bold", size = 12),
+    plot.subtitle = element_text(size = 9)
+  ) +
+  labs(
+    title = "Standardisierte Verteilungen im Vergleich",
+    subtitle = "Boxplots zeigen Median, Quartile und Ausreißer",
+    x = "Variable", y = "Standardisierter Wert"
+  ) +
+  guides(fill = "none")
+
+ggsave("img/Abbildungen/boxplots_verteilungen.png", p4, 
+       width = 10, height = 4, dpi = 300)
+cat("✅ Plot 4 gespeichert: img/Abbildungen/boxplots_verteilungen.png\n")
+
+cat("\n🎯 Alle Plots erfolgreich erstellt und gespeichert!\n")
+```
+
+### Verteilungen der E-Commerce Kennzahlen
+
+Die Analyse der Datenverteilungen zeigt charakteristische Muster für E-Commerce-Transaktionen:
+
+![Verteilungen der wichtigsten Variablen](img/Abbildungen/verteilungen_ecommerce.png){#fig-verteilungen width=100%}
+
+### Korrelationsstruktur der Variablen
+
+Die Korrelationsmatrix verdeutlicht die Zusammenhänge zwischen den verschiedenen Kennzahlen:
+
+![Korrelationsmatrix der E-Commerce Variablen](img/Abbildungen/korrelationsmatrix.png){#fig-korrelation width=100%}
+
+### Scatterplot-Matrix wichtiger Beziehungen
+
+Die Scatterplots zeigen die Beziehungen zwischen zentralen Variablen auf:
+
+![Wichtige Scatterplot-Beziehungen](img/Abbildungen/scatterplots_beziehungen.png){#fig-scatterplots width=100%}
+
+### Standardisierte Verteilungen im Vergleich
+
+Die Boxplots ermöglichen einen direkten Vergleich der Variablenverteilungen:
+
+![Standardisierte Verteilungen im Vergleich](img/Abbildungen/boxplots_verteilungen.png){#fig-boxplots width=100%}
+
+```{r statistics-table}
+#| eval: true
+#| echo: true
+#| results: true
+#| warning: false
+#| message: false
+
+# Deskriptive Statistiken (nutzt die bereits geladenen Daten)
+summary_stats <- retail_viz %>%
+  summarise(
+    across(everything(), list(
+      Missing = ~sum(is.na(.)),
+      `Missing %` = ~round(sum(is.na(.)) / length(.) * 100, 1),
+      Distinct = ~n_distinct(.),
+      Min = ~round(min(., na.rm = T), 2),
+      Median = ~round(median(., na.rm = T), 2),
+      Max = ~round(max(., na.rm = T), 2),
+      Mean = ~round(mean(., na.rm = T), 2),
+      SD = ~round(sd(., na.rm = T), 2)
+    ))
+  ) %>%
+  pivot_longer(everything(), names_to = c("Variable", "Statistic"), names_sep = "_") %>%
+  pivot_wider(names_from = Statistic, values_from = value)
+
+# GT-Tabelle für PDF
+summary_stats %>%
+  gt() %>%
+  tab_header(
+    title = "Deskriptive Statistiken - Online Retail Dataset",
+    subtitle = paste("Basiert auf", nrow(retail_clean), "Transaktionen")
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_body(columns = Variable)
+  ) %>%
+  fmt_number(
+    columns = c(Min, Median, Max, Mean, SD),
+    decimals = 2
+  ) %>%
+  tab_options(
+    table.font.size = 10,
+    heading.title.font.size = 12,
+    heading.subtitle.font.size = 10
+  )
+```
+
 
 
 
@@ -562,6 +845,8 @@ Die hervorgehobene Zelle 351 veranschaulicht exemplarisch, wie einzelne Kundengr
 
 
 
+
+\clearpage
 
 
 
