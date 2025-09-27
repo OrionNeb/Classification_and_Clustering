@@ -61,7 +61,7 @@ execute:
   code-overflow: wrap  # Lange Zeilen umbrechen
 ---
 
-```{r eval=TRUE, message=FALSE, warning=FALSE, include=FALSE}
+```{r, label=r-setup, eval=TRUE, message=FALSE, warning=FALSE, include=FALSE}
 
 # CRAN-Mirror setzen (WICHTIG: Vor allen anderen Operationen)
 options(repos = c(CRAN = "https://cran.rstudio.com/"))
@@ -112,7 +112,7 @@ library(patchwork)
 
 ```
 
-```{python, include=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+```{python, label=python-setup, include=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
 # Erforderliche Bibliotheken installieren (falls nicht vorhanden)
 import subprocess
 import sys
@@ -223,13 +223,14 @@ Die Kombination beider Perspektiven erlaubt es, sowohl verhaltensnahe Muster (Re
 Damit Segmentstrukturen in den Daten sichtbar werden, müssen aus den Rohdaten aussagekräftige Merkmale abgeleitet werden. Dieser Schritt wird als Feature Engineering bezeichnet [@tsiptsisDataMiningTechniques2010, S. 337].
 
 Im Zentrum stehen die klassischen RFM-Variablen, die drei grundlegende Dimensionen des Kaufverhaltens beschreiben:  
-  - *Recency* erfasst den zeitlichen Abstand seit dem letzten Kauf,  
-  - *Frequency* gibt die Anzahl der Käufe in einem bestimmten Zeitraum wieder,  
-  - *Monetary* misst den Umsatz im selben Zeitraum.  
+- *Recency* erfasst den zeitlichen Abstand seit dem letzten Kauf,  
+- *Frequency* gibt die Anzahl der Käufe in einem bestimmten Zeitraum wieder,  
+- *Monetary* misst den Umsatz im selben Zeitraum.  
 
 Durch die Kombination dieser Dimensionen können Kunden in Zellen eingeteilt werden, die Verhalten und Wert systematisch abbilden. So steht etwa die Zelle 555 für besonders wertvolle Kunden (jüngster Kauf, hohe Frequenz, hoher Umsatz), während 151 Kunden mit langer Kaufpause, geringer Frequenz und geringem Umsatz beschreibt [@tsiptsisDataMiningTechniques2010, S. 334–338]. Diese Zellenlogik ist leicht verständlich, skaliert aber schlecht, da mit Quintilen bis zu 125 Klassen entstehen können.
 
 Um diese Komplexität zu reduzieren, lässt sich RFM in eine kontinuierliche Kennzahl überführen. Dabei werden die drei Dimensionen zu einem gewichteten Summenscore zusammengefasst:
+
 $$
 \text{RFM-Score} = w_R \cdot R + w_F \cdot F + w_M \cdot M,
 \qquad w_R + w_F + w_M = 1 .
@@ -239,7 +240,28 @@ Der Vorteil dieser Verdichtung liegt in der besseren Vergleichbarkeit: Statt ein
 
 Die Gewichtung der Parameter ist flexibel gestaltbar. Unternehmen können etwa den zeitlichen Abstand (Recency) stärker gewichten, wenn Reaktivierungskampagnen im Vordergrund stehen, oder die Häufigkeit (Frequency), wenn Loyalität im Fokus liegt. Durch Variation der Gewichte $w_R$, $w_F$ und $w_M$ wird unmittelbar sichtbar, wie sich die Kundenklassifikation verschiebt [@tsiptsisDataMiningTechniques2010, S. 338].
 
-Eine anschauliche Visualisierung der RFM-Zellen und ihrer logischen Struktur findet sich im [Anhang B.3: Retail-Segmentierung mit RFM](#sec-anhangB.3). Dort wird die Systematik in Form eines Würfels dargestellt und um weitere Merkmale (z. B. Warenkorbgrößen, Sortimentsvielfalt) ergänzt, die im praktischen Einsatz zusätzliche Differenzierung ermöglichen.
+Eine anschauliche Visualisierung der RFM-Zellen und ihrer logischen Struktur findet sich in [Anhang B.3: Retail-Segmentierung mit RFM](#sec-anhangB.3).  
+
+Ergänzend zur klassischen RFM-Analyse werden in der Literatur weitere behaviorale Variablen vorgeschlagen, um das Kundenverhalten differenzierter zu erfassen. Besonders relevant sind *Warenkorbgrößen* und *Sortimentsmerkmale* [@tsiptsisDataMiningTechniques2010, S. 334].  
+
+Warenkorbgrößen (*Basket Size*) beschreiben, wie umfangreich einzelne Bestellungen typischerweise ausfallen. Sie können entweder über die durchschnittliche Anzahl enthaltener Artikel oder über den durchschnittlichen Bestellwert erfasst werden. Formal lässt sich die mittlere Warenkorbgröße als Quotient aus der Gesamtzahl der Artikel eines Kunden und der Anzahl seiner Bestellungen ausdrücken:  
+
+$$
+\text{Average Basket Size} = \frac{\text{Gesamtzahl Artikel eines Kunden}}{\text{Anzahl seiner Bestellungen}} .
+$$
+
+Sortimentsmerkmale (*Relative Spending per Product Group*) erfassen die Breite beziehungsweise die Fokussierung der Ausgaben eines Kunden. Sie geben an, welcher Anteil des Gesamtumsatzes auf einzelne Produktgruppen entfällt. Formal kann der Anteil einer Kategorie $i$ als Verhältnis von Umsatz in dieser Kategorie zum Gesamtumsatz des Kunden dargestellt werden:  
+
+$$
+\text{Sortimentsanteil}_{i} = \frac{\text{Umsatz in Kategorie } i}{\text{Gesamtumsatz des Kunden}} .
+$$
+
+
+Ein hoher Wert in einer Kategorie kennzeichnet einen „Spezialisten“, während eine gleichmäßigere Verteilung auf viele Kategorien auf einen „Generalisten“ hinweist.  
+
+Eine ausführlichere und beispielhafte Darstellung dieser Konzepte erfolgt in [Anhang B.4: Warenkorb- und Sortimentsmerkmale](#sec-anhangB.4), wo anhand von Illustrationen unterschiedliche Kundentypen wie „Frequent Shopper“, „Bulk Buyer“, „Generalisten“ und „Spezialisten“ gegenübergestellt werden.
+
+
 
 ## Clustering-Verfahren (K-Means, HDBSCAN - zentrale Eigenschaften) {#sec-clustering-verfahren}
 
@@ -300,7 +322,13 @@ Diese Segmente wurden in Personas übersetzt und durch Visualisierungen unterst�
 
 <!-- ================= 6. Diskussion ================= -->
 
-## Vergleich der Verfahren
+# Diskussion {#sec-diskussion}
+
+## Vergleich der Verfahren {#sec-verfahren}
+
+## Implikationen für Marketing und CRM {#sec-implikationen}
+
+## Grenzen und methodische Limitationen {#sec-grenezen-limitationen}
 
 <!-- ================= 7. Fazit und Ausblick ================= -->
 
@@ -476,7 +504,7 @@ Ergänzend zur theoretischen Einführung im Hauptteil wird hier die Zellenlogik 
 
 Die folgende programmgenerierte Darstellung zeigt alle möglichen Kombinationen von *Recency* und *Frequency* auf einer Ebene mit festem *Monetary*-Wert. Die Zelle 351 ist dabei als Beispiel hervorgehoben.  
 
-```{python}
+```{python, label=rfm}
 #| eval: true
 #| echo: true
 #| results: hide
@@ -574,7 +602,373 @@ Jede Zelle im Würfel steht für eine Kombination dieser drei Dimensionen und wi
 
 Die hervorgehobene Zelle 351 veranschaulicht exemplarisch, wie einzelne Kundengruppen identifiziert werden können. Damit wird deutlich, dass das RFM-Schema ein Raster bildet, das eine differenzierte Beschreibung von Kundenverhalten ermöglicht.
 
+::: {#sec-anhangB.4}
+## B.4: Warenkorb- und Sortimentsmerkmale {.unnumbered}
+:::
 
+Dieser Abschnitt illustriert die im Hauptteil beschriebenen Konzepte *Warenkorbgrößen* und *Sortimentsmerkmale* anhand von Beispielen und Visualisierungen. Während @sec-feature-engineering die theoretischen Grundlagen und formalen Definitionen eingeführt hat, werden hier exemplarische Kundentypen wie „Frequent Shopper“, „Bulk Buyer“, „Generalisten“ und „Spezialisten“ dargestellt. Auf diese Weise wird deutlich, wie sich die abstrakten Kennzahlen in der Praxis auf konkrete Verhaltensmuster übertragen lassen.
+
+\myheading{Warenkorbgr\"oßen}
+
+\noindent Die @fig-warenkorb zeigt zwei kontrastierende Kundentypen: \smallskip
+
+  - Kunde A („Frequent Shopper“) tätigt häufige, kleine Einkäufe.
+  - Kunde B („Bulk Buyer“) kauft selten, aber in großen Mengen.
+
+\bigskip  
+
+Obwohl beide die gleiche Gesamtzahl an Artikeln kaufen, unterscheiden sie sich im Bestellverhalten fundamental. Diese Unterschiede lassen sich durch die *Average Basket Size* quantifizieren.
+
+```{python}
+#| label: fig-warenkorb
+#| fig-cap: "Warenkorbanalyse verschiedener Kundentypen mit Durchschnittswerten, Bestellhäufigkeit und Vergleichsdarstellung"
+#| fig-alt: "Visualisierung der Unterschiede zwischen Frequent Shopper und Bulk Buyer"
+#| fig-width: 12
+#| fig-height: 7
+
+import matplotlib.pyplot as plt
+import matplotlib.patheffects as path_effects
+import numpy as np
+
+# Daten für beide Kundentypen
+customers = ["Kunde A\n(Frequent Shopper)", "Kunde B\n(Bulk Buyer)"]
+basket_size = [2, 20]
+order_count = [10, 2]
+total_items = [20, 40]
+
+# 3D-Farbpalette
+colors_primary = ['#FF6B6B', '#4ECDC4']
+colors_secondary = ['#E74C3C', '#45B7D1']
+colors_scatter = ['#FF1744', '#00BCD4']
+
+fig = plt.figure(figsize=(16, 10))
+
+# Layout mit GridSpec - ERWEITERT für Kennzahlen
+gs = fig.add_gridspec(3, 3, height_ratios=[2.5, 1, 0.8], width_ratios=[1, 1, 0.8], 
+                     hspace=0.4, wspace=0.3, top=0.88, bottom=0.08)
+
+# 3D Bar Charts
+ax1 = fig.add_subplot(gs[0, 0])
+ax2 = fig.add_subplot(gs[0, 1])
+ax3 = fig.add_subplot(gs[1, 0])
+ax4 = fig.add_subplot(gs[:2, 2])  # Rechts über 2 Zeilen
+ax5 = fig.add_subplot(gs[2, :2])  # NEUE Kennzahlen-Zeile
+
+# 1. Warenkorbgröße mit besserer Y-Achsen-Skalierung
+bars1 = ax1.bar(customers, basket_size, color=colors_primary, alpha=0.9,
+                edgecolor='black', linewidth=2, 
+                width=0.6)
+ax1.set_title('Durchschnittliche Warenkorbgröße', fontweight='bold', fontsize=12, pad=15)
+ax1.set_ylabel('Artikel pro Bestellung', fontweight='bold')
+ax1.grid(True, alpha=0.3, linestyle='--')
+ax1.set_facecolor('#F8F9FA')
+ax1.set_ylim(0, max(basket_size) * 1.3)
+
+# Werte besser positioniert
+for i, (bar, value) in enumerate(zip(bars1, basket_size)):
+    text = ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(basket_size) * 0.05, 
+                   str(value), ha='center', va='bottom', fontweight='bold', fontsize=14,
+                   color='white')
+    text.set_path_effects([path_effects.withStroke(linewidth=2, foreground='black')])
+
+# 2. Anzahl Bestellungen mit besserer Y-Achsen-Skalierung
+bars2 = ax2.bar(customers, order_count, color=colors_secondary, alpha=0.9,
+                edgecolor='black', linewidth=2,
+                width=0.6)
+ax2.set_title('Anzahl Bestellungen', fontweight='bold', fontsize=12, pad=15)
+ax2.set_ylabel('Bestellungen gesamt', fontweight='bold')
+ax2.grid(True, alpha=0.3, linestyle='--')
+ax2.set_facecolor('#F8F9FA')
+ax2.set_ylim(0, max(order_count) * 1.3)
+
+# Werte besser positioniert
+for i, (bar, value) in enumerate(zip(bars2, order_count)):
+    text = ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(order_count) * 0.05, 
+                   str(value), ha='center', va='bottom', fontweight='bold', fontsize=14,
+                   color='white')
+    text.set_path_effects([path_effects.withStroke(linewidth=2, foreground='black')])
+
+# 3. Scatter Plot GRÖSSER mit besserer Achsen-Skalierung
+ax3.scatter(order_count, basket_size, s=[500, 500],
+           c=colors_scatter, alpha=0.8, 
+           edgecolors='black', linewidth=2,
+           zorder=5)
+ax3.set_xlabel('Anzahl Bestellungen', fontweight='bold', fontsize=11)
+ax3.set_ylabel('Warenkorbgröße', fontweight='bold', fontsize=11)
+ax3.set_title('Kundentypen im Vergleich', fontweight='bold', fontsize=13, pad=15)
+ax3.grid(True, alpha=0.3, linestyle='--')
+ax3.set_facecolor('#F8F9FA')
+
+# Bessere Achsen-Grenzen für mehr Platz
+ax3.set_xlim(0, max(order_count) * 1.2)
+ax3.set_ylim(0, max(basket_size) * 1.2)
+
+# Annotationen mit 3D-Effekt - größer
+for i, customer in enumerate(['A', 'B']):
+    ax3.annotate(f'Kunde {customer}', 
+                xy=(order_count[i], basket_size[i]),
+                xytext=(10, 10), textcoords='offset points',
+                fontweight='bold', fontsize=12, color='white',
+                bbox=dict(boxstyle="round,pad=0.4",
+                        facecolor=colors_scatter[i], alpha=0.8, 
+                        edgecolor='black', linewidth=2))
+
+# 4. Strategische Implikationen mit kompakterem Layout
+ax4.axis('off')
+
+# 3D-artiger Hintergrund
+ax4.add_patch(plt.Rectangle((0, 0), 1, 1, transform=ax4.transAxes, 
+                           facecolor='lightgray', alpha=0.2, 
+                           edgecolor='black', linewidth=1))
+
+# Titel mit 3D-Box
+ax4.text(0.05, 0.95, 'Strategische Implikationen', fontsize=12, fontweight='bold', 
+         transform=ax4.transAxes, color='white',
+         bbox=dict(boxstyle="round,pad=0.3", facecolor='steelblue', alpha=0.8, edgecolor='black'))
+
+# Kunde A Implikationen - kompakter
+ax4.text(0.05, 0.85, 'Kunde A (Frequent Shopper):', fontsize=10, fontweight='bold',
+         transform=ax4.transAxes, color='white',
+         bbox=dict(boxstyle="round,pad=0.2", facecolor='#FF6B6B', alpha=0.8, edgecolor='black'))
+
+implications_a = ['• Häufige Kontaktpunkte', '• Loyalitätsprogramme', '• Cross-Selling-Potenzial']
+for i, impl in enumerate(implications_a):
+    ax4.text(0.05, 0.79 - i*0.05, impl, fontsize=9, transform=ax4.transAxes,
+            bbox=dict(boxstyle="round,pad=0.15", facecolor='white', alpha=0.8, edgecolor='gray'))
+
+# Kunde B Implikationen - kompakter
+ax4.text(0.05, 0.60, 'Kunde B (Bulk Buyer):', fontsize=10, fontweight='bold',
+         transform=ax4.transAxes, color='white',
+         bbox=dict(boxstyle="round,pad=0.2", facecolor='#4ECDC4', alpha=0.8, edgecolor='black'))
+
+implications_b = ['• Planungsorientiert', '• Volumenrabatte', '• Lagerservice']
+for i, impl in enumerate(implications_b):
+    ax4.text(0.05, 0.54 - i*0.05, impl, fontsize=9, transform=ax4.transAxes,
+            bbox=dict(boxstyle="round,pad=0.15", facecolor='white', alpha=0.8, edgecolor='gray'))
+
+# Fazit mit 3D-Effekt - kompakter
+ax4.text(0.05, 0.35, 'Fazit:', fontsize=10, fontweight='bold',
+         transform=ax4.transAxes, color='white',
+         bbox=dict(boxstyle="round,pad=0.2", facecolor='darkgreen', alpha=0.8, edgecolor='black'))
+
+ax4.text(0.05, 0.25, 'Beide Typen wertvoll, aber\nunterschiedliche Ansprache nötig', 
+         fontsize=9, transform=ax4.transAxes, style='italic',
+         bbox=dict(boxstyle="round,pad=0.15", facecolor='lightyellow', alpha=0.8, edgecolor='orange'))
+
+# NEUE Kennzahlen-Ausgabe für Warenkorbanalyse
+ax5.axis('off')
+kennzahlen_text = f"""WARENKORBANALYSE: Kunde A - Warenkorbgröße: {basket_size[0]} Artikel | Bestellungen: {order_count[0]}/Periode | Kunde B - Warenkorbgröße: {basket_size[1]} Artikel | Bestellungen: {order_count[1]}/Periode | Verhältnis: {basket_size[1]/basket_size[0]:.1f}:1"""
+
+ax5.text(0.5, 0.5, kennzahlen_text, fontsize=10, 
+         transform=ax5.transAxes, ha='center', va='center',
+         fontfamily='monospace', fontweight='bold',
+         bbox=dict(boxstyle="round,pad=0.3", facecolor='gold', 
+                  alpha=0.8, edgecolor='black', linewidth=2))
+
+# 3D-Titel höher positioniert
+plt.suptitle('Warenkorbstrategien: 3D-Analyse verschiedener Kundentypen', 
+             fontsize=16, fontweight='bold', y=0.96,
+             bbox=dict(boxstyle="round,pad=0.5", facecolor='gold', alpha=0.8, 
+                      edgecolor='black', linewidth=2))
+
+plt.tight_layout()
+plt.show()
+
+```
+
+Die Visualisierung verdeutlicht, dass beide Kundentypen für ein Unternehmen wertvoll sein können, jedoch unterschiedliche Marketingstrategien erfordern. Während Frequent Shopper auf Loyalitätsprogramme und Cross-Selling reagieren, benötigen Bulk Buyer volumenorientierte Anreize und Serviceleistungen.
+
+\myheading{Sortimentsmerkmale}
+
+\noindent Die @fig-sortiment stellt das Verhalten eines Generalisten (Kunde C) und eines Spezialisten (Kunde D) gegenüber.
+
+
+```{python}
+#| label: fig-sortiment
+#| fig-cap: "Sortimentsverhalten: Vergleich von Generalisten (gleichmäßige Diversifikation) und Spezialisten (dominante Kategorie)"
+#| fig-alt: "Visualisierung der Unterschiede zwischen Generalisten und Spezialisten"
+#| fig-width: 12
+#| fig-height: 7
+
+import matplotlib.pyplot as plt
+import matplotlib.patheffects as path_effects
+import numpy as np
+
+# Beispiel: Sortimentsanteile
+categories = ["Elektronik", "Kleidung", "Bücher", "Sport", "Haushalt"]
+
+# Generalist: gleichmäßige Verteilung
+generalist = [20, 20, 20, 20, 20]
+
+# Spezialist: starke Fokussierung auf eine Kategorie
+specialist = [80, 8, 5, 4, 3]
+
+# Intensivere 3D-Farbpalette mit Verläufen
+colors_generalist = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8']
+colors_specialist = ['#E74C3C', '#3498DB', '#F39C12', '#9B59B6', '#2ECC71']
+
+fig = plt.figure(figsize=(16, 9))
+
+# Layout mit GridSpec - MEHR PLATZ OBEN für Titel
+gs = fig.add_gridspec(3, 3, height_ratios=[2.5, 1, 0.8], width_ratios=[1, 1, 0.8], 
+                     hspace=0.5, wspace=0.3, top=0.82, bottom=0.08)  # top reduziert für mehr Platz
+
+# Charts definieren - ALLE WEITER UNTEN
+ax1 = fig.add_subplot(gs[0, 0])  # Pie Chart 1
+ax2 = fig.add_subplot(gs[0, 1])  # Pie Chart 2
+ax3 = fig.add_subplot(gs[:2, 2])  # Rechts über 2 Zeilen
+ax4 = fig.add_subplot(gs[1, :2])  # Tabelle
+ax5 = fig.add_subplot(gs[2, :2])  # Kennzahlen-Zeile (bleibt)
+
+# Generalist Pie Chart mit 3D-Effekt
+wedges1, texts1, autotexts1 = ax1.pie(generalist, labels=categories, autopct='%1.0f%%',
+                                      colors=colors_generalist,
+                                      explode=(0.08, 0.08, 0.08, 0.08, 0.08),
+                                      shadow=False,  # Schatten entfernt
+                                      startangle=45,
+                                      wedgeprops={'edgecolor': 'black', 
+                                                'linewidth': 2,
+                                                'linestyle': '-',
+                                                'alpha': 0.9},
+                                      textprops={'fontsize': 9, 
+                                               'fontweight': 'bold',
+                                               'color': 'white'})
+
+ax1.set_title("Kunde C: Generalist\n(Gleichmäßige Diversifikation)", 
+              fontsize=12, fontweight='bold', pad=15)
+
+# Spezialist Pie Chart mit 3D-Effekt
+wedges2, texts2, autotexts2 = ax2.pie(specialist, labels=categories, autopct='%1.0f%%',
+                                      colors=colors_specialist,
+                                      explode=(0.15, 0.03, 0.03, 0.03, 0.03),
+                                      shadow=False,  # Schatten entfernt
+                                      startangle=45,
+                                      wedgeprops={'edgecolor': 'black', 
+                                                'linewidth': 3,
+                                                'linestyle': '-',
+                                                'alpha': 0.9},
+                                      textprops={'fontsize': 9, 
+                                               'fontweight': 'bold',
+                                               'color': 'white'})
+
+ax2.set_title("Kunde D: Spezialist\n(Fokus auf Elektronik)", 
+              fontsize=12, fontweight='bold', pad=15)
+
+# Extra weiße, fette Schrift für 3D-Effekt
+for autotext in autotexts1:
+    autotext.set_color('white')
+    autotext.set_fontweight('bold')
+    autotext.set_fontsize(11)
+    autotext.set_path_effects([path_effects.withStroke(linewidth=3, foreground='black')])
+
+for autotext in autotexts2:
+    autotext.set_color('white')
+    autotext.set_fontweight('bold')
+    autotext.set_fontsize(11)
+    autotext.set_path_effects([path_effects.withStroke(linewidth=3, foreground='black')])
+
+# Analyse-Panel rechts mit 3D-Box
+ax3.axis('off')
+
+# 3D-artiger Hintergrund
+ax3.add_patch(plt.Rectangle((0, 0), 1, 1, transform=ax3.transAxes, 
+                           facecolor='lightgray', alpha=0.3, 
+                           edgecolor='black', linewidth=2))
+
+ax3.text(0.05, 0.95, 'Sortiments-Analyse', fontsize=14, fontweight='bold', 
+         transform=ax3.transAxes,
+         bbox=dict(boxstyle="round,pad=0.3", facecolor='steelblue', alpha=0.7, edgecolor='black'))
+
+# Kunde C Statistiken mit 3D-Boxen
+ax3.text(0.05, 0.85, 'Kunde C (Generalist):', fontsize=11, fontweight='bold',
+         transform=ax3.transAxes, color='white',
+         bbox=dict(boxstyle="round,pad=0.3", facecolor='#FF6B6B', alpha=0.8, edgecolor='black'))
+
+stats_c = ['• 5 aktive Kategorien', '• Diversitäts-Index: 1.00', 
+           '• Gleichmäßige Verteilung', '• Cross-Selling-Potenzial']
+for i, stat in enumerate(stats_c):
+    ax3.text(0.05, 0.78 - i*0.04, stat, fontsize=10, transform=ax3.transAxes,
+            bbox=dict(boxstyle="round,pad=0.2", facecolor='white', alpha=0.8, edgecolor='gray'))
+
+# Kunde D Statistiken mit 3D-Boxen
+ax3.text(0.05, 0.55, 'Kunde D (Spezialist):', fontsize=11, fontweight='bold',
+         transform=ax3.transAxes, color='white',
+         bbox=dict(boxstyle="round,pad=0.3", facecolor='#E74C3C', alpha=0.8, edgecolor='black'))
+
+stats_d = ['• 5 Kategorien, 1 dominant', '• Diversitäts-Index: 0.37',
+           '• 80% Fokus auf Elektronik', '• Category-Management']
+for i, stat in enumerate(stats_d):
+    ax3.text(0.05, 0.48 - i*0.04, stat, fontsize=10, transform=ax3.transAxes,
+            bbox=dict(boxstyle="round,pad=0.2", facecolor='white', alpha=0.8, edgecolor='gray'))
+
+# Strategische Implikationen - VERKÜRZT
+ax3.text(0.05, 0.25, 'Strategische Implikationen:', fontsize=11, fontweight='bold',
+         transform=ax3.transAxes, color='white',
+         bbox=dict(boxstyle="round,pad=0.3", facecolor='darkgreen', alpha=0.8, edgecolor='black'))
+
+ax3.text(0.05, 0.18, 'Verschiedene Strategien erfordern\nangepasste Ansätze', fontsize=10, 
+        transform=ax3.transAxes, style='italic',
+        bbox=dict(boxstyle="round,pad=0.2", facecolor='lightyellow', alpha=0.8, edgecolor='orange'))
+
+# 3D-Tabelle unten
+ax4.axis('off')
+
+# Tabellen-Daten
+table_data = [
+    ['Merkmal', 'Generalist (Kunde C)', 'Spezialist (Kunde D)'],
+    ['Kategorien aktiv', '5 (alle gleichmäßig)', '5 (1 dominant)'],
+    ['Konzentration', '20% pro Kategorie', '80% Elektronik'],
+    ['Diversität', 'Hoch (1.00)', 'Niedrig (0.37)'],
+    ['Marketing-Fokus', 'Cross-Selling', 'Category-Expertise']
+]
+
+# Tabelle mit 3D-Effekt
+table = ax4.table(cellText=table_data[1:], 
+                 colLabels=table_data[0],
+                 cellLoc='center',
+                 loc='center',
+                 bbox=[0, 0, 1, 1])
+
+table.auto_set_font_size(False)
+table.set_fontsize(9)
+table.scale(1, 2.2)
+
+# 3D-Header-Stil
+for i in range(3):
+    table[(0, i)].set_facecolor('#2C3E50')
+    table[(0, i)].set_text_props(weight='bold', color='white')
+    table[(0, i)].set_edgecolor('black')
+    table[(0, i)].set_linewidth(2)
+
+# 3D-Zeilen mit Farbverläufen
+colors_rows = ['#ECF0F1', '#BDC3C7']
+for i in range(1, 5):
+    for j in range(3):
+        table[(i, j)].set_facecolor(colors_rows[i % 2])
+        table[(i, j)].set_edgecolor('black')
+        table[(i, j)].set_linewidth(1)
+
+# Kennzahlen-Ausgabe (BLEIBT WO SIE IST)
+ax5.axis('off')
+kennzahlen_text = f"""SORTIMENTSANALYSE: Kunde C - Konzentration: {max(generalist)}% (niedrig) | Kunde D - Konzentration: {max(specialist)}% (sehr hoch) | Verhältnis Hauptkategorie: {max(specialist)/max(generalist):.1f}:1"""
+
+ax5.text(0.5, 0.5, kennzahlen_text, fontsize=10, 
+         transform=ax5.transAxes, ha='center', va='center',
+         fontfamily='monospace', fontweight='bold',
+         bbox=dict(boxstyle="round,pad=0.3", facecolor='gold', 
+                  alpha=0.8, edgecolor='black', linewidth=2))
+
+# Titel HÖHER positioniert mit mehr Abstand
+plt.suptitle('Sortimentsverhalten: Generalist vs. Spezialist', 
+             fontsize=18, fontweight='bold', y=0.98,  # Höher positioniert
+             bbox=dict(boxstyle="round,pad=0.5", facecolor='gold', alpha=0.8, edgecolor='black', linewidth=3))
+
+plt.tight_layout()
+plt.show()
+
+```
+
+Kunde C verteilt seine Ausgaben gleichmäßig über verschiedene Kategorien, was sich in einem hohen Diversitätsindex widerspiegelt und Cross-Selling-Potenzial bietet. Kunde D hingegen fokussiert sich stark auf eine einzige Kategorie, was eine spezialisierte Ansprache im Category-Management erforderlich macht.
 
 \clearpage
 
@@ -613,15 +1007,6 @@ library(tidyr)
 library(knitr)
 library(gt)
 
-# Alte Plots löschen vor Neuerstellung
-if (dir.exists("img/Abbildungen")) {
-  old_files <- list.files("img/Abbildungen", pattern = "*.png", full.names = TRUE)
-  if (length(old_files) > 0) {
-    file.remove(old_files)
-    cat("🗑️", length(old_files), "alte Plot(s) gelöscht\n")
-  }
-}
-
 # Verzeichnis erstellen (falls nicht vorhanden)
 if (!dir.exists("img/Abbildungen")) {
   dir.create("img/Abbildungen", recursive = TRUE)
@@ -653,107 +1038,124 @@ retail_viz <- retail_clean %>%
 retail_long <- retail_viz %>%
   pivot_longer(everything(), names_to = "Variable", values_to = "Value")
 
-# PLOT 1: Verteilungen erstellen und speichern
-p1 <- ggplot(retail_long, aes(x = Value)) +
-  geom_histogram(bins = 50, fill = "steelblue", alpha = 0.7, color = "black") +
-  facet_wrap(~Variable, scales = "free", ncol = 3) +
-  theme_minimal() +
-  labs(
-    title = "Verteilungen der E-Commerce Kennzahlen",
-    subtitle = paste("Basiert auf", nrow(retail_clean), "Transaktionen"),
-    x = "Wert", y = "Häufigkeit"
-  ) +
-  theme(
-    strip.text = element_text(face = "bold", size = 10),
-    plot.title = element_text(face = "bold", size = 14),
-    axis.text = element_text(size = 9),
-    axis.title = element_text(size = 10)
-  )
+# PLOT 1: Verteilungen (nur erstellen wenn nicht vorhanden)
+plot1_path <- "img/Abbildungen/verteilungen_ecommerce.png"
+if (!file.exists(plot1_path)) {
+  p1 <- ggplot(retail_long, aes(x = Value)) +
+    geom_histogram(bins = 50, fill = "steelblue", alpha = 0.7, color = "black") +
+    facet_wrap(~Variable, scales = "free", ncol = 3) +
+    theme_minimal() +
+    labs(
+      title = "Verteilungen der E-Commerce Kennzahlen",
+      subtitle = paste("Basiert auf", nrow(retail_clean), "Transaktionen"),
+      x = "Wert", y = "Häufigkeit"
+    ) +
+    theme(
+      strip.text = element_text(face = "bold", size = 10),
+      plot.title = element_text(face = "bold", size = 14),
+      axis.text = element_text(size = 9),
+      axis.title = element_text(size = 10)
+    )
+  
+  ggsave(plot1_path, p1, width = 10, height = 6, dpi = 300)
+  cat("Plot 1 erstellt:", plot1_path, "\n")
+} else {
+  cat("Plot 1 bereits vorhanden:", plot1_path, "\n")
+}
 
-ggsave("img/Abbildungen/verteilungen_ecommerce.png", p1, 
-       width = 10, height = 6, dpi = 300)
-cat("✅ Plot 1 gespeichert: img/Abbildungen/verteilungen_ecommerce.png\n")
+# PLOT 2: Korrelationsmatrix (nur erstellen wenn nicht vorhanden)
+plot2_path <- "img/Abbildungen/korrelationsmatrix.png"
+if (!file.exists(plot2_path)) {
+  correlation_matrix <- cor(retail_viz, use = "complete.obs")
+  
+  png(plot2_path, width = 10*300, height = 8*300, res = 300)
+  corrplot(correlation_matrix, 
+           method = "color", type = "upper", order = "hclust",
+           tl.col = "black", tl.srt = 45, addCoef.col = "black",
+           number.cex = 0.8, col = colorRampPalette(c("red", "white", "blue"))(200),
+           title = "Korrelationsmatrix - Online Retail Variablen", mar = c(0,0,2,0))
+  dev.off()
+  cat("Plot 2 erstellt:", plot2_path, "\n")
+} else {
+  cat("Plot 2 bereits vorhanden:", plot2_path, "\n")
+}
 
-# PLOT 2: Korrelationsmatrix erstellen und speichern
-correlation_matrix <- cor(retail_viz, use = "complete.obs")
+# PLOT 3: Scatterplots (nur erstellen wenn nicht vorhanden)
+plot3_path <- "img/Abbildungen/scatterplots_beziehungen.png"
+if (!file.exists(plot3_path)) {
+  cat("Verwende vollstaendigen Datensatz:", nrow(retail_viz), "Transaktionen fuer Scatterplots\n")
+  
+  p3a <- ggplot(retail_viz, aes(x = Quantity, y = Price)) +
+    geom_point(alpha = 0.4, size = 0.8, color = "steelblue") +
+    geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
+    theme_minimal() + 
+    labs(title = "Quantity vs. Price", x = "Menge", y = "Preis") +
+    theme(plot.title = element_text(face = "bold", size = 11))
+  
+  p3b <- ggplot(retail_viz, aes(x = LogQuantity, y = LogPrice)) +
+    geom_point(alpha = 0.4, size = 0.8, color = "darkgreen") +
+    geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
+    theme_minimal() + 
+    labs(title = "Log(Quantity) vs. Log(Price)", x = "Log(Menge)", y = "Log(Preis)") +
+    theme(plot.title = element_text(face = "bold", size = 11))
+  
+  p3c <- ggplot(retail_viz, aes(x = Quantity, y = Revenue)) +
+    geom_point(alpha = 0.4, size = 0.8, color = "purple") +
+    geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
+    theme_minimal() + 
+    labs(title = "Quantity vs. Revenue", x = "Menge", y = "Umsatz") +
+    theme(plot.title = element_text(face = "bold", size = 11))
+  
+  p3d <- ggplot(retail_viz, aes(x = Price, y = Revenue)) +
+    geom_point(alpha = 0.4, size = 0.8, color = "orange") +
+    geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
+    theme_minimal() + 
+    labs(title = "Price vs. Revenue", x = "Preis", y = "Umsatz") +
+    theme(plot.title = element_text(face = "bold", size = 11))
+  
+  p3_combined <- (p3a | p3b) / (p3c | p3d) +
+    plot_annotation(
+      title = "Scatterplot-Matrix: Wichtige Beziehungen",
+      theme = theme(plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
+    )
+  
+  ggsave(plot3_path, p3_combined, width = 10, height = 8, dpi = 300)
+  cat("Plot 3 erstellt:", plot3_path, "\n")
+} else {
+  cat("Plot 3 bereits vorhanden:", plot3_path, "\n")
+}
 
-png("img/Abbildungen/korrelationsmatrix.png", width = 10*300, height = 8*300, res = 300)
-corrplot(correlation_matrix, 
-         method = "color", type = "upper", order = "hclust",
-         tl.col = "black", tl.srt = 45, addCoef.col = "black",
-         number.cex = 0.8, col = colorRampPalette(c("red", "white", "blue"))(200),
-         title = "Korrelationsmatrix - Online Retail Variablen", mar = c(0,0,2,0))
-dev.off()
-cat("✅ Plot 2 gespeichert: img/Abbildungen/korrelationsmatrix.png\n")
+# PLOT 4: Boxplots (nur erstellen wenn nicht vorhanden)
+plot4_path <- "img/Abbildungen/boxplots_verteilungen.png"
+if (!file.exists(plot4_path)) {
+  retail_long_scaled <- retail_viz %>%
+    mutate_all(scale) %>%
+    pivot_longer(everything(), names_to = "Variable", values_to = "Value")
+  
+  p4 <- ggplot(retail_long_scaled, aes(x = Variable, y = Value, fill = Variable)) +
+    geom_boxplot(alpha = 0.7, outlier.size = 0.3) +
+    theme_minimal() +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
+      axis.text.y = element_text(size = 8),
+      axis.title = element_text(size = 10),
+      plot.title = element_text(face = "bold", size = 12),
+      plot.subtitle = element_text(size = 9)
+    ) +
+    labs(
+      title = "Standardisierte Verteilungen im Vergleich",
+      subtitle = "Boxplots zeigen Median, Quartile und Ausreisser",
+      x = "Variable", y = "Standardisierter Wert"
+    ) +
+    guides(fill = "none")
+  
+  ggsave(plot4_path, p4, width = 10, height = 4, dpi = 300)
+  cat("Plot 4 erstellt:", plot4_path, "\n")
+} else {
+  cat("Plot 4 bereits vorhanden:", plot4_path, "\n")
+}
 
-# PLOT 3: Scatterplots erstellen und speichern
-cat("Verwende vollständigen Datensatz:", nrow(retail_viz), "Transaktionen für Scatterplots\n")
-
-p3a <- ggplot(retail_viz, aes(x = Quantity, y = Price)) +
-  geom_point(alpha = 0.4, size = 0.8, color = "steelblue") +
-  geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
-  theme_minimal() + 
-  labs(title = "Quantity vs. Price", x = "Menge", y = "Preis") +
-  theme(plot.title = element_text(face = "bold", size = 11))
-
-p3b <- ggplot(retail_viz, aes(x = LogQuantity, y = LogPrice)) +
-  geom_point(alpha = 0.4, size = 0.8, color = "darkgreen") +
-  geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
-  theme_minimal() + 
-  labs(title = "Log(Quantity) vs. Log(Price)", x = "Log(Menge)", y = "Log(Preis)") +
-  theme(plot.title = element_text(face = "bold", size = 11))
-
-p3c <- ggplot(retail_viz, aes(x = Quantity, y = Revenue)) +
-  geom_point(alpha = 0.4, size = 0.8, color = "purple") +
-  geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
-  theme_minimal() + 
-  labs(title = "Quantity vs. Revenue", x = "Menge", y = "Umsatz") +
-  theme(plot.title = element_text(face = "bold", size = 11))
-
-p3d <- ggplot(retail_viz, aes(x = Price, y = Revenue)) +
-  geom_point(alpha = 0.4, size = 0.8, color = "orange") +
-  geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
-  theme_minimal() + 
-  labs(title = "Price vs. Revenue", x = "Preis", y = "Umsatz") +
-  theme(plot.title = element_text(face = "bold", size = 11))
-
-p3_combined <- (p3a | p3b) / (p3c | p3d) +
-  plot_annotation(
-    title = "Scatterplot-Matrix: Wichtige Beziehungen",
-    theme = theme(plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
-  )
-
-ggsave("img/Abbildungen/scatterplots_beziehungen.png", p3_combined, 
-       width = 10, height = 8, dpi = 300)
-cat("✅ Plot 3 gespeichert: img/Abbildungen/scatterplots_beziehungen.png\n")
-
-# PLOT 4: Boxplots erstellen und speichern
-retail_long_scaled <- retail_viz %>%
-  mutate_all(scale) %>%
-  pivot_longer(everything(), names_to = "Variable", values_to = "Value")
-
-p4 <- ggplot(retail_long_scaled, aes(x = Variable, y = Value, fill = Variable)) +
-  geom_boxplot(alpha = 0.7, outlier.size = 0.3) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
-    axis.text.y = element_text(size = 8),
-    axis.title = element_text(size = 10),
-    plot.title = element_text(face = "bold", size = 12),
-    plot.subtitle = element_text(size = 9)
-  ) +
-  labs(
-    title = "Standardisierte Verteilungen im Vergleich",
-    subtitle = "Boxplots zeigen Median, Quartile und Ausreißer",
-    x = "Variable", y = "Standardisierter Wert"
-  ) +
-  guides(fill = "none")
-
-ggsave("img/Abbildungen/boxplots_verteilungen.png", p4, 
-       width = 10, height = 4, dpi = 300)
-cat("✅ Plot 4 gespeichert: img/Abbildungen/boxplots_verteilungen.png\n")
-
-cat("\n🎯 Alle Plots erfolgreich erstellt und gespeichert!\n")
+cat("\nAlle Plots verarbeitet!\n")
 ```
 
 ### Verteilungen der E-Commerce Kennzahlen
