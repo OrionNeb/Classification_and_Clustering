@@ -1196,7 +1196,7 @@ Die Abbildung in ein gemeinsames Schema stellt sicher, dass spätere Merkmalsber
 Die Umsetzung der Transformation erfolgt mit R. Der folgende Chunk zeigt exemplarisch, wie die Zielvariablen aus beiden Quellen generiert werden.
 
 
-```{r c.2-Einheitliches_Ereignisschema}
+```{r C.2-Einheitliches_Ereignisschema}
 
 
 #| eval: TRUE
