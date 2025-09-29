@@ -1736,6 +1736,8 @@ if (file.exists(cust_file)) {
       frequency_log= log1p(frequency),
       returns_abs_log = log1p(returns_abs)
     )
+  # nach Fertigstellung ins Python-Env legen
+  py$cust <- cust
 
   saveRDS(cust, cust_file, compress = "xz")
 }
