@@ -1092,6 +1092,8 @@ Dieser Anhang dokumentiert die technischen Schritte, die den Haupttext flankiere
 
 In den Abschnitten C.1–C.5 wird mit R gearbeitet, um die Daten zu laden, bereinigen und in ein konsistentes Schema zu überführen. Ab C.6 kommen Python und spezialisierte Bibliotheken für Clustertendenz, Modellierung und Evaluation zum Einsatz. Diese Aufgabenteilung folgt der Praxis vieler Forschungsarbeiten: R für transparente Datenaufbereitung, Python für Machine Learning.
 
+\clearpage
+
 ::: {#sec-anhangC.1}
 ## C.1 Variablenbeschreibung und Quellen {.unnumbered}
 :::
@@ -1281,6 +1283,9 @@ Die Rohdaten enthalten neben den relevanten Informationen auch fehlerhafte oder 
 
 Die Anwendung dieser Regeln stellt sicher, dass Auswertungen auf stabilen Grundlagen erfolgen und Verzerrungen durch fehlerhafte Einträge vermieden werden. Die bereinigten Daten bilden damit die Ausgangsbasis für die Normalisierung der Zeitangaben in Abschnitt [C.4](#sec-anhangC4).
 
+Das Recency-Merkmal wird nicht im Preprocessing berechnet, sondern erst beim Feature Engineering auf Kundenebene in Abschnitt [C.7](#sec-anhangC7).
+
+
 ```{r C.3-bereinigung, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, cache=TRUE}
 
 # benötigte Pakete
@@ -1436,7 +1441,8 @@ py$or2_purchases <- or2_time %>%
 
 py$or2_returns <- or2_time %>%
   filter(event_type == "return") %>%
-  select(transactionid, customer_id, timestamp = timestamp_iso, revenue_signed)
+  select(transactionid, customer_id, timestamp = timestamp_iso,
+         revenue_signed, revenue_w)   # <- beide Werte mitgeben
 
 list(
   rr_time_head  = head(select(rr_time,  customer_id, item_id, timestamp, timestamp_iso, event_type), 3),
@@ -1726,32 +1732,35 @@ if (file.exists(cust_file)) {
     )
 
   # Rückgaben-Features
+  
   ret_feat <- rets %>%
-    mutate(ts = ymd_hms(timestamp, tz = "UTC")) %>%
-    group_by(customer_id) %>%
-    summarise(returns_abs = sum(abs(revenue_signed), na.rm=TRUE),
-              returns_cnt = n_distinct(transactionid),
-              .groups="drop")
+  mutate(ts = ymd_hms(timestamp, tz = "UTC")) %>%
+  group_by(customer_id) %>%
+  summarise(
+    returns_abs   = sum(abs(revenue_w), na.rm = TRUE),      # absoluter Wert der Rückgaben
+    returns_cnt   = n_distinct(transactionid),              # Anzahl Rückgaben
+    returns_net   = sum(revenue_signed, na.rm = TRUE),      # negative Summen explizit
+    .groups="drop"
+  ) %>%
+  mutate(
+    returns_ratio = if_else(returns_abs > 0, returns_abs / abs(returns_net), 0)
+  )
 
   cust <- cust %>%
-    left_join(dist_tab, by="customer_id") %>%
-    left_join(ret_feat, by="customer_id") %>%
-    mutate(across(c(category_diversity, hhi_rev, entropy_rev, returns_abs, returns_cnt),
-                  ~replace_na(.,0))) %>%
-    # optionale Log-Transformationen für heavy-tailed Variablen
-    mutate(
-      monetary_log = log1p(monetary),
-      aov_log      = log1p(aov),
-      frequency_log= log1p(frequency),
-      returns_abs_log = log1p(returns_abs)
-    )
-  
-
-  saveRDS(cust, cust_file, compress = "xz")
+  left_join(dist_tab, by="customer_id") %>%
+  left_join(ret_feat, by="customer_id") %>%
+  mutate(across(c(category_diversity, hhi_rev, entropy_rev,
+                  returns_abs, returns_cnt, returns_net, returns_ratio),
+                ~replace_na(.,0))) %>%
+  mutate(
+    monetary_log     = log1p(monetary),
+    aov_log          = log1p(aov),
+    frequency_log    = log1p(frequency),
+    returns_abs_log  = log1p(returns_abs)
+  )
+saveRDS(cust, cust_file, compress = "xz")
+write.csv(cust, "cache/customer_features.csv", row.names = FALSE)
 }
-
-# nach Fertigstellung ins Python-Env legen
-py$cust <- cust
 
 head(cust, 5)
 ```
@@ -1776,8 +1785,8 @@ from sklearn.cluster import KMeans
 os.makedirs("cache", exist_ok=True)
 out_csv = "cache/cluster_kmeans.csv"
 
-# cust direkt aus R über py.cust holen
-cust = py.cust
+# cust direkt aus CSV laden (nicht aus R!)
+cust = pd.read_csv("cache/customer_features.csv")
 
 features = [
     "recency_days","frequency","monetary","aov",
@@ -1819,8 +1828,8 @@ import hdbscan
 os.makedirs("cache", exist_ok=True)
 out_csv = "cache/cluster_hdbscan.csv"
 
-# cust direkt aus R über py.cust holen
-cust = py.cust
+# cust direkt aus CSV laden (nicht aus R!)
+cust = pd.read_csv("cache/customer_features.csv")
 
 features = [
     "recency_days","frequency","monetary","aov",
@@ -1848,7 +1857,7 @@ hdb_res.head(10)
 Die Qualität der Cluster wird mit Silhouette (K-Means), Davies–Bouldin (K-Means) und DBCV (HDBSCAN) bewertet.
 Ergebnisse werden in cache/cluster_metrics.rds gespeichert.
 
-```{python C.7-validierung}
+```{r C.7-validierung}
 
 #| eval: true
 #| echo: true
@@ -1865,17 +1874,18 @@ metrics_file <- "cache/cluster_metrics.rds"
 if (file.exists(metrics_file)) {
   metrics <- readRDS(metrics_file)
 } else {
-  cust <- readRDS("cache/customer_features.rds")
+  cust <- read.csv("cache/customer_features.csv")
   features <- c(
     "recency_days","frequency","monetary","aov",
     "basket_items_mean","basket_items_p95","category_diversity",
     "hhi_rev","entropy_rev","returns_abs","returns_cnt",
     "monetary_log","aov_log","frequency_log","returns_abs_log"
   )
-  Xdf <- cust[, features] |> 
+  Xdf <- cust[, features] |>
     mutate(across(everything(), ~ifelse(is.infinite(.), NA, .))) |>
     tidyr::drop_na()
-  # Standardisieren in R für Silhouette/DB-Score (optional in R), hier weiter in Python:
+
+  # Standardisieren in Python
   np <- import("numpy", convert = FALSE)
   skp <- import("sklearn.preprocessing", convert = TRUE)
   skm <- import("sklearn.metrics", convert = TRUE)
@@ -1906,3 +1916,182 @@ if (file.exists(metrics_file)) {
 }
 metrics
 ```
+
+
+::: {#sec-anhangD}
+# Anhang D: Ergebnisse und Visualisierungen {.unnumbered}
+:::
+\markboth{Anhang D: Ergebnisse und Visualisierungen}{}
+
+Dieser Anhang ergänzt die im Haupttext dargestellten Ergebnisse um detaillierte Tabellen, Visualisierungen und narrative Beschreibungen der identifizierten Segmente. Während Anhang C die technische Umsetzung der Aufbereitung und Modellierung dokumentiert, liegt der Schwerpunkt hier auf der Darstellung, Interpretation und Kommunikation der Ergebnisse.  
+
+\medskip
+
+**Inhalt dieses Anhangs** \smallskip  
+
+1. [Clusterprofile (Kennzahlen je Segment)](#sec-anhangD.1)  
+2. [Visualisierungen der Clusterlösungen](#sec-anhangD.2)  
+3. [Personas der Kundensegmente](#sec-anhangD.3)  
+
+\clearpage
+
+::: {#sec-anhangD.1}
+## D.1: Clusterprofile {.unnumbered}
+:::
+
+Die Clusterlösungen aus [C.7](#sec-anhangC.7) wurden aggregiert, um zentrale Kennzahlen je Segment zu berechnen. Diese **Clusterprofile** zeigen Mittelwerte, Mediane und Streuungen wichtiger Merkmale (Recency, Frequency, Monetary, Warenkorb- und Sortimentskennzahlen). Sie bilden die Grundlage für die spätere Interpretation und die Ableitung von Personas.  
+
+```{r D.1-clusterprofile}
+
+#| eval: true
+#| echo: true
+#| message: false
+#| warning: false
+#| dependson: ["C.7-validierung"]
+
+library(dplyr)
+library(readr)
+
+cust <- read.csv("cache/customer_features.csv")
+km   <- read_csv("cache/cluster_kmeans.csv", show_col_types = FALSE)
+hdb  <- read_csv("cache/cluster_hdbscan.csv", show_col_types = FALSE)
+
+# Clusterlabels anhängen
+cust_km  <- cust %>% left_join(km,  by="customer_id")
+cust_hdb <- cust %>% left_join(hdb, by="customer_id")
+
+# Profile berechnen: K-Means
+prof_km <- cust_km %>%
+  group_by(cluster_kmeans) %>%
+  summarise(across(c(recency_days, frequency, monetary, aov,
+                     basket_items_mean, basket_items_p95,
+                     category_diversity, hhi_rev, entropy_rev,
+                     returns_abs, returns_cnt),
+                   list(mean=mean, median=median), .names="{.col}_{.fn}"),
+            n_customers=n())
+
+# Profile berechnen: HDBSCAN (nur Cluster >= 0)
+prof_hdb <- cust_hdb %>%
+  filter(cluster_hdbscan >= 0) %>%
+  group_by(cluster_hdbscan) %>%
+  summarise(across(c(recency_days, frequency, monetary, aov,
+                     basket_items_mean, basket_items_p95,
+                     category_diversity, hhi_rev, entropy_rev,
+                     returns_abs, returns_cnt),
+                   list(mean=mean, median=median), .names="{.col}_{.fn}"),
+            n_customers=n())
+
+saveRDS(list(kmeans=prof_km, hdbscan=prof_hdb), "cache/cluster_profiles.rds", compress="xz")
+list(kmeans=prof_km, hdbscan=prof_hdb)
+```
+
+\noindent Die Tabellen zeigen, welche Unterschiede sich zwischen den Segmenten ergeben – z. B. besonders hohe Umsätze (Monetary), kurze Kaufintervalle (Recency) oder hohe Sortimentsdiversität.
+
+::: {#sec-anhangD.2}
+D.2: Visualisierungen der Clusterlösungen {.unnumbered}
+:::
+
+Zur Veranschaulichung der Cluster wurden Boxplots und Radar-Charts erstellt. Sie ermöglichen einen intuitiven Vergleich der Segmente entlang zentraler Dimensionen.
+
+```{r D.2-visualisierungen_der_clusterloesungen}
+
+#| eval: true
+#| echo: true
+#| message: false
+#| warning: false
+#| dependson: ["D.1-clusterprofile"]
+
+library(ggplot2)
+library(tidyr)
+
+cust_km <- cust %>% left_join(km, by="customer_id")
+
+# Boxplots für ausgewählte Variablen
+cust_km %>%
+  pivot_longer(cols=c(monetary, recency_days, frequency, basket_items_mean, category_diversity),
+               names_to="variable", values_to="value") %>%
+  ggplot(aes(x=factor(cluster_kmeans), y=value, fill=factor(cluster_kmeans))) +
+  geom_boxplot(outlier.alpha=0.2) +
+  facet_wrap(~variable, scales="free_y") +
+  labs(title="K-Means Clusterprofile", x="Cluster", y="Wert", fill="Cluster") +
+  theme_minimal()
+```
+
+\noindent Radar-Charts können zusätzlich erstellt werden, um die typischen Muster pro Cluster auf einen Blick zu erfassen. (Optional, falls du das noch aufnehmen möchtest.)
+
+```{r D.2-radar-chart}
+
+#| eval: true
+#| echo: true
+#| message: false
+#| warning: false
+#| dependson: ["D.1-clusterprofile"]
+
+library(fmsb)
+library(dplyr)
+
+# Clusterprofile laden
+profiles <- readRDS("cache/cluster_profiles.rds")$kmeans
+
+# Variablen auswählen
+vars <- c("recency_days_mean","frequency_mean","monetary_mean",
+          "basket_items_mean_mean","category_diversity_mean")
+
+df <- profiles %>%
+  select(cluster_kmeans, all_of(vars)) %>%
+  rename_with(~sub("_mean","",.), all_of(vars)) %>%
+  as.data.frame()
+
+# Skalen für fmsb: oberste + unterste Zeile = Max/Min
+radar_df <- rbind(
+  apply(df[,-1], 2, max, na.rm=TRUE),
+  apply(df[,-1], 2, min, na.rm=TRUE),
+  df[,-1]
+)
+rownames(radar_df) <- c("max","min", paste0("Cluster ", df$cluster_kmeans))
+
+# Farben
+colors_border <- c("red","blue","green","orange","purple")
+colors_in <- adjustcolor(colors_border, alpha.f=0.3)
+
+radarchart(radar_df,
+           axistype=1,
+           pcol=colors_border,
+           pfcol=colors_in,
+           plwd=2,
+           plty=1,
+           cglcol="grey",
+           cglty=1,
+           axislabcol="grey20",
+           caxislabels=seq(0, max(radar_df), length.out=5),
+           cglwd=0.8,
+           vlcex=0.9,
+           title="Radar-Chart der K-Means-Clusterprofile")
+
+legend("topright", legend=rownames(radar_df)[-c(1,2)],
+       col=colors_border, lty=1, lwd=2, bty="n", cex=0.8)
+
+```
+
+::: {#sec-anhangD.3}
+D.3: Personas der Kundensegmente {.unnumbered}
+:::
+
+Die Clusterprofile wurden in narrative Personas übersetzt. Personas helfen, abstrakte Kennzahlen in greifbare Beschreibungen von Kundentypen zu überführen.
+
+  * Cluster 1 – Loyaler Stammkunde
+    Häufige Einkäufe, mittlerer Warenkorbwert, hohe Bindung. Geeignet für Treueprogramme.
+  * Cluster 2 – Premium-Gelegenheitskäufer
+    Wenige Einkäufe, hoher Umsatz, Premium-orientiert. Ansprache über exklusive Angebote.
+  * Cluster 3 – Abwanderungsgefährdet
+    Niedrige Frequenz und Umsätze, lange Recency. Reaktivierungskampagnen notwendig.
+  * Cluster 4 – Schnäppchenjäger
+    Sehr hohe Frequenz, kleine Warenkörbe. Zielgruppe für Rabattaktionen und Promotions.
+  * Cluster 5 – Unregelmäßige Käufer (HDBSCAN, teils Rauschen)
+    Saisonale Muster, schwer planbares Verhalten. Geeignet für Event-bezogene Kampagnen.
+
+\medskip
+
+\noindent Diese Personas schlagen die Brücke von der Modellierung zur praktischen Nutzung im Marketing und CRM. Sie machen die Ergebnisse verständlich und handlungsleitend.
+
+<!--=== Ende ===-->
