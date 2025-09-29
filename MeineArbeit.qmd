@@ -1272,7 +1272,7 @@ Die Rohdaten enthalten neben den relevanten Informationen auch fehlerhafte oder 
 
 Die Anwendung dieser Regeln stellt sicher, dass Auswertungen auf stabilen Grundlagen erfolgen und Verzerrungen durch fehlerhafte Einträge vermieden werden. Die bereinigten Daten bilden damit die Ausgangsbasis für die Normalisierung der Zeitangaben in Abschnitt [C.4](#sec-anhangC4).
 
-```{r c3-bereinigung, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, cache=TRUE}
+```{r C.3-bereinigung, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, cache=TRUE}
 
 # benötigte Pakete
 library(dplyr)
