@@ -1362,12 +1362,6 @@ set.seed(42)
 
 ```{r C.4-zeit-normalisierung}
 
-ChatGPT:
-
-Perfekt, hier der korrigierte C.4-zeit-normalisierung Block, sodass py$or2_returns mit revenue_signed exportiert wird. Damit läuft dein C.7-feature-engineering ohne Änderung weiter:
-
-```{r C.4-zeit-normalisierung}
-
 # Dateien:
 #   cache/rr_time.rds
 #   cache/or2_time.rds
