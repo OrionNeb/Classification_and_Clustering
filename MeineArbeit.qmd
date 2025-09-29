@@ -1163,9 +1163,9 @@ Zuordnung der Quell- zu den Zielvariablen
 : Abbildung der Variablen auf das Ereignisschema {#tbl-ereignisschema}
 
 \medskip
-
+<!--== passt das noch?
 \noindent Während RetailRocket eine feingranulare Unterscheidung nach Ereignistypen erlaubt (*view*, *addtocart*, *transaction*), bildet Online Retail II ausschließlich abgeschlossene Käufe ab. Beide Datensätze liefern somit unterschiedliche, aber komplementäre Informationen.  
-
+==-->
 Die Abbildung in ein gemeinsames Schema stellt sicher, dass spätere Merkmalsberechnungen (z. B. Recency, Frequency, Monetary-Werte, Kaufintervalle, Diversität) auf konsistenter Datenbasis erfolgen können.  
 
 Die Umsetzung der Transformation erfolgt mit R. Der folgende Chunk zeigt exemplarisch, wie die Zielvariablen aus beiden Quellen generiert werden.
@@ -1173,44 +1173,51 @@ Die Umsetzung der Transformation erfolgt mit R. Der folgende Chunk zeigt exempla
 
 ```{r c.2-Einheitliches_Ereignisschema}
 
-#| eval=TRUE
-#| echo=TRUE
-#| include=TRUE
-#| results=TRUE
-#| message=FALSE
-#| warning=FALSE
 
-# RetailRocket auf Ereignisschema abbilden
+#| eval: TRUE
+#| echo: TRUE
+#| include: TRUE
+#| results: TRUE
+#| message: FALSE
+#| warning: FALSE
+
+library(dplyr)
+library(lubridate)
+
+# RetailRocket in UTC einlesen, dann auf Europe/London abbilden
 rr_events <- events %>%
-  select(customer_id = visitorid,
-         item_id     = itemid,
-         timestamp   = timestamp,
-         event_type  = event,
-         transactionid) %>%
-  mutate(timestamp   = as.POSIXct(timestamp/1000, origin="1970-01-01", tz="UTC"),
-         quantity    = ifelse(event_type == "transaction", 1, NA),
-         price       = NA_real_,   # später aus item_properties
-         revenue     = ifelse(!is.na(quantity) & !is.na(price), quantity * price, NA_real_),
-         category    = NA_character_) # später aus category_tree
+  transmute(
+    customer_id   = visitorid,
+    item_id       = itemid,
+    timestamp     = as.POSIXct(timestamp/1000, origin = "1970-01-01", tz = "UTC"),
+    event_type    = event,
+    transactionid = transactionid
+  ) %>%
+  mutate(timestamp = with_tz(timestamp, "Europe/London"),
+         quantity  = NA_real_,
+         price     = NA_real_,
+         revenue   = NA_real_,
+         category  = NA_character_)
 
-# Online Retail II auf Ereignisschema abbilden
+# Online Retail II: lokale Zeiten explizit als Europe/London interpretieren
 or2_events <- online_retail %>%
-  select(transactionid = Invoice,
-         item_id       = StockCode,
-         customer_id   = `Customer ID`,
-         timestamp     = InvoiceDate,
-         quantity      = Quantity,
-         price         = Price,
-         country       = Country,
-         description   = Description) %>%   # hier mit reinnehmen
-  mutate(event_type = "purchase",
-         revenue    = quantity * price,
-         category   = description)          # hier benutzen
+  transmute(
+    transactionid = Invoice,
+    item_id       = StockCode,
+    customer_id   = `Customer ID`,
+    timestamp     = force_tz(InvoiceDate, "Europe/London"),
+    quantity      = Quantity,
+    price         = Price,
+    country       = Country,
+    description   = Description,
+    event_type    = "purchase",
+    revenue       = Quantity * Price,
+    category      = Description
+  )
 
-
-# Vorschau
 head(rr_events, 5)
 head(or2_events, 5)
+
 
 ```
 
@@ -1241,38 +1248,31 @@ Die Rohdaten enthalten neben den relevanten Informationen auch fehlerhafte oder 
 Die Anwendung dieser Regeln stellt sicher, dass Auswertungen auf stabilen Grundlagen erfolgen und Verzerrungen durch fehlerhafte Einträge vermieden werden. Die bereinigten Daten bilden damit die Ausgangsbasis für die Normalisierung der Zeitangaben in Abschnitt [C.4](#sec-anhangC4).
 
 ```{r c3-bereinigung, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, cache=TRUE}
+
 # benötigte Pakete
 library(dplyr)
 library(stringr)
 
-# Vorbedingungen prüfen
 if (!exists("rr_events"))  stop("rr_events fehlt. Bitte C.2 ausführen.")
 if (!exists("or2_events")) stop("or2_events fehlt. Bitte C.2 ausführen.")
 
-# Hilfsfunktion: sichere Winsorisierung (tut nichts, wenn zu wenig gültige Werte vorliegen)
 safe_winsorize <- function(x, p_low = 0.01, p_high = 0.99) {
   if (!is.numeric(x)) return(x)
   nn <- sum(!is.na(x))
   if (nn < 10) return(x)
   lo <- suppressWarnings(quantile(x, probs = p_low, na.rm = TRUE))
   hi <- suppressWarnings(quantile(x, probs = p_high, na.rm = TRUE))
-  x <- pmin(pmax(x, lo), hi)
-  as.numeric(x)
+  as.numeric(pmin(pmax(x, lo), hi))
 }
 
-# 1) RetailRocket bereinigen
-# Pflichtfelder belegen, exakte Duplikate entfernen
+# RetailRocket bereinigen
 rr_clean <- rr_events %>%
-  # nur wirklich notwendige Felder
   select(customer_id, item_id, timestamp, event_type, transactionid,
          quantity, price, revenue, category) %>%
-  # Pflichtfelder
   filter(!is.na(customer_id), !is.na(item_id), !is.na(timestamp), !is.na(event_type)) %>%
-  # exakte Duplikate
   distinct(customer_id, item_id, timestamp, event_type, transactionid, .keep_all = TRUE)
 
-# 2) Online Retail II bereinigen
-# Rückgaben-Regel und Felder füllen
+# Online Retail II: Rückgaben sauber behandeln
 or2_clean <- or2_events %>%
   select(transactionid, item_id, customer_id, timestamp, quantity, price, country, description,
          event_type, revenue, category) %>%
@@ -1282,12 +1282,13 @@ or2_clean <- or2_events %>%
   ) %>%
   filter(!is.na(customer_id), !is.na(item_id), !is.na(timestamp)) %>%
   mutate(
-    return_flag  = (!is.na(quantity) & quantity < 0) |
-                   (!is.na(transactionid) & grepl("^C", as.character(transactionid))),
-    quantity_abs = if_else(return_flag & !is.na(quantity), abs(quantity), quantity),
-    event_type   = if_else(return_flag, "return", "purchase"),
-    category     = coalesce(category, description),
-    revenue      = if_else(!is.na(quantity_abs) & !is.na(price), quantity_abs * price, revenue)
+    return_flag     = (!is.na(quantity) & quantity < 0) |
+                      (!is.na(transactionid) & str_starts(as.character(transactionid), "C")),
+    event_type      = if_else(return_flag, "return", "purchase"),
+    quantity_abs    = if_else(!is.na(quantity), abs(quantity), NA_real_),
+    revenue_signed  = quantity * price,
+    revenue_abs     = quantity_abs * price,
+    category        = coalesce(category, description)
   ) %>%
   distinct(transactionid, item_id, customer_id, timestamp, quantity_abs, price, event_type, .keep_all = TRUE) %>%
   mutate(
@@ -1298,7 +1299,6 @@ or2_clean <- or2_events %>%
   filter(is.na(quantity_w) | quantity_w > 0,
          is.na(price_w)    | price_w    > 0)
 
-# kurze Sichtprüfungen
 head(rr_clean, 5)
 head(or2_clean, 5)
 ```
@@ -1342,9 +1342,9 @@ set.seed(42)
 ```{r C.4-zeit-normalisierung}
 
 
-# Dateien: 
-#   cache/rr_time.rds  = normalisierte RetailRocket-Daten
-#   cache/or2_time.rds = normalisierte Online-Retail-II-Daten
+# Dateien:
+#   cache/rr_time.rds
+#   cache/or2_time.rds
 
 #| eval: true
 #| echo: true
@@ -1363,7 +1363,7 @@ rr_file  <- "cache/rr_time.rds"
 or2_file <- "cache/or2_time.rds"
 
 to_iso_utc <- function(x) {
-  format(with_tz(as.POSIXct(x, tz = "UTC"), "UTC"), "%Y-%m-%dT%H:%M:%SZ")
+  format(with_tz(as.POSIXct(x, tz = "Europe/London"), "UTC"), "%Y-%m-%dT%H:%M:%SZ")
 }
 
 if (file.exists(rr_file) && file.exists(or2_file)) {
@@ -1372,23 +1372,23 @@ if (file.exists(rr_file) && file.exists(or2_file)) {
 } else {
   rr_time <- rr_clean %>%
     mutate(
-      timestamp    = as.POSIXct(timestamp, tz = "UTC"),
-      date         = as.Date(timestamp),
-      wday         = wday(timestamp, label = TRUE, abbr = TRUE, week_start = 1),
-      hour         = hour(timestamp),
-      month        = month(timestamp, label = TRUE, abbr = TRUE),
-      year         = year(timestamp),
+      timestamp     = with_tz(as.POSIXct(timestamp, tz = "Europe/London"), "Europe/London"),
+      date          = as.Date(timestamp),
+      wday          = wday(timestamp, label = TRUE, abbr = TRUE, week_start = 1),
+      hour          = hour(timestamp),
+      month         = month(timestamp, label = TRUE, abbr = TRUE),
+      year          = year(timestamp),
       timestamp_iso = to_iso_utc(timestamp)
     )
 
   or2_time <- or2_clean %>%
     mutate(
-      timestamp    = as.POSIXct(timestamp, tz = "UTC"),
-      date         = as.Date(timestamp),
-      wday         = wday(timestamp, label = TRUE, abbr = TRUE, week_start = 1),
-      hour         = hour(timestamp),
-      month        = month(timestamp, label = TRUE, abbr = TRUE),
-      year         = year(timestamp),
+      timestamp     = with_tz(as.POSIXct(timestamp, tz = "Europe/London"), "Europe/London"),
+      date          = as.Date(timestamp),
+      wday          = wday(timestamp, label = TRUE, abbr = TRUE, week_start = 1),
+      hour          = hour(timestamp),
+      month         = month(timestamp, label = TRUE, abbr = TRUE),
+      year          = year(timestamp),
       timestamp_iso = to_iso_utc(timestamp)
     )
 
@@ -1396,17 +1396,23 @@ if (file.exists(rr_file) && file.exists(or2_file)) {
   saveRDS(or2_time, or2_file)
 }
 
+# Python-Views: Käufe und Rückgaben getrennt übergeben
 py$rr_time <- rr_time %>%
   select(customer_id, item_id, timestamp = timestamp_iso, event_type)
 
-py$or2_time <- or2_time %>%
-  select(customer_id, item_id, timestamp = timestamp_iso, event_type,
-         quantity_w, price_w, revenue_w)
+py$or2_purchases <- or2_time %>%
+  filter(event_type == "purchase") %>%
+  select(transactionid, customer_id, item_id, timestamp = timestamp_iso,
+         quantity_w, price_w, revenue_w, category)
+
+py$or2_returns <- or2_time %>%
+  filter(event_type == "return") %>%
+  select(transactionid, customer_id, timestamp = timestamp_iso, revenue_signed)
 
 list(
   rr_time_head  = head(select(rr_time,  customer_id, item_id, timestamp, timestamp_iso, event_type), 3),
-  or2_time_head = head(select(or2_time, customer_id, item_id, timestamp, timestamp_iso, event_type,
-                              quantity_w, price_w, revenue_w), 3)
+  or2_pur_head  = head(py$or2_purchases, 3),
+  or2_ret_head  = head(py$or2_returns, 3)
 )
 
 ```
@@ -1434,19 +1440,16 @@ Zentrale Fragen der Plausibilisierung sind: \smallskip
 ```{r C.5-zusammenfassung}
 
 
-# Datei: cache/zusammenfassung.rds = Dimensionen, Missing, Duplikate, Verteilungen, Ereignisse, Abdeckung
-
 #| eval: true
 #| echo: true
 #| message: false
 #| warning: false
-#| dependson: ["c4-zeit-normalisierung"]
+#| dependson: ["C.4-zeit-normalisierung"]
 
 library(dplyr)
 library(tidyr)
 library(lubridate)
 
-# Guards
 if (!exists("rr_time") || !exists("or2_time")) {
   stop("C.5 benötigt rr_time und or2_time aus C.4.")
 }
@@ -1457,14 +1460,12 @@ if (file.exists(file_sum)) {
   res <- readRDS(file_sum)
 } else {
 
-  # 1) Dimensionsübersicht
   dim_summary <- tibble::tibble(
     datensatz = c("RetailRocket (bereinigt + normalisiert)", "Online Retail II (bereinigt + normalisiert)"),
     n_zeilen  = c(nrow(rr_time), nrow(or2_time)),
     n_spalten = c(ncol(rr_time), ncol(or2_time))
   )
 
-  # 2) Vollständigkeit zentraler Felder
   missing_rr  <- rr_time  %>%
     summarise(across(c(customer_id, item_id, timestamp, event_type), ~ sum(is.na(.)))) %>%
     pivot_longer(everything(), names_to = "feld", values_to = "missing") %>%
@@ -1475,10 +1476,8 @@ if (file.exists(file_sum)) {
     pivot_longer(everything(), names_to = "feld", values_to = "missing") %>%
     mutate(datensatz = "Online Retail II")
 
-  missing_summary <- bind_rows(missing_rr, missing_or2) %>%
-    relocate(datensatz)
+  missing_summary <- bind_rows(missing_rr, missing_or2) %>% relocate(datensatz)
 
-  # 3) Duplikatprüfung auf technischem Schlüssel
   dup_rr <- rr_time %>%
     mutate(key = paste(customer_id, item_id, timestamp, event_type, sep = "|")) %>%
     summarise(dups = sum(duplicated(key)), share = round(mean(duplicated(key)), 6)) %>%
@@ -1491,7 +1490,6 @@ if (file.exists(file_sum)) {
 
   duplicate_summary <- bind_rows(dup_rr, dup_or2) %>% relocate(datensatz)
 
-  # 4) Verteilungen kaufrelevanter Variablen (nur OR2)
   quantiles <- c(0, .01, .05, .25, .5, .75, .95, .99, 1)
 
   dist_or2 <- or2_time %>%
@@ -1517,12 +1515,10 @@ if (file.exists(file_sum)) {
     ) %>%
     mutate(across(where(is.numeric), ~ round(., 4)))
 
-  # 5) Ereignisverteilung
   evt_rr  <- rr_time  %>% count(event_type, name = "n") %>% mutate(datensatz = "RetailRocket") %>% relocate(datensatz)
   evt_or2 <- or2_time %>% count(event_type, name = "n") %>% mutate(datensatz = "Online Retail II") %>% relocate(datensatz)
   event_summary <- bind_rows(evt_rr, evt_or2)
 
-  # 6) Zeitliche Abdeckung nach Jahr-Monat
   cover_rr <- rr_time %>%
     mutate(year_month = format(as.Date(timestamp), "%Y-%m")) %>%
     count(year_month, name = "n") %>%
@@ -1537,7 +1533,6 @@ if (file.exists(file_sum)) {
 
   coverage_summary <- bind_rows(cover_rr, cover_or2) %>% arrange(datensatz, year_month)
 
-  # 7) Ausgabe bündeln
   res <- list(
     dimensionen         = dim_summary,
     fehlende_werte      = missing_summary,
@@ -1580,62 +1575,46 @@ Die Analyse erfolgt reproduzierbar mit Stichprobenziehung, Mehrfachschätzung un
 
 ```{r C.6-hopkins}
 
-
-# Datei: cache/hopkins.rds = Ergebnis Hopkins-Statistik (inkl. CI und Einordnung)
-
 #| eval: true
 #| echo: true
 #| message: false
 #| warning: false
-#| dependson: ["c4-zeit-normalisierung"]
+#| dependson: ["C.4-zeit-normalisierung"]
 
 library(dplyr)
 library(tibble)
 library(clustertend)
 
-# Guard
-if (!exists("or2_time")) {
-  stop("C.6 benötigt 'or2_time' aus C.4.")
-}
-
-# Optionaler Schnellmodus aus C.4; falls nicht gesetzt, hier definieren
+if (!exists("or2_time")) stop("C.6 benötigt or2_time aus C.4.")
 if (!exists("FAST")) FAST <- TRUE
 
-# Cache-Datei
 dir.create("cache", showWarnings = FALSE)
 file_hop <- "cache/hopkins.rds"
 
 if (file.exists(file_hop)) {
   hop_res <- readRDS(file_hop)
 } else {
-  # Parameter
   set.seed(42)
-  HOP_NROWS <- if (FAST) 1500L else 5000L   # maximale Stichprobengröße
-  HOP_R     <- if (FAST) 10L    else 25L    # Wiederholungen für CI
-  HOP_N     <- 300L                         # n für clustertend::hopkins
+  HOP_NROWS <- if (FAST) 1500L else 5000L
+  HOP_R     <- if (FAST) 10L   else 25L
+  HOP_N     <- 300L
 
-  # Datenmatrix vorbereiten
   dat0 <- or2_time %>%
     select(quantity_w, price_w, revenue_w) %>%
     filter(if_all(everything(), ~ is.finite(.)))
-
   stopifnot(nrow(dat0) >= 50)
 
   dat_s <- dplyr::slice_sample(dat0, n = min(HOP_NROWS, nrow(dat0)))
   X     <- scale(as.matrix(dat_s))
   n_h   <- min(HOP_N, nrow(X) - 1L)
 
-  # Helper robust gegenüber Rückgabeformaten unterschiedlicher clustertend Versionen
   get_H <- function(mat, n) {
     res <- clustertend::hopkins(mat, n = n)
     if (is.list(res) && !is.null(res$H)) return(unname(res$H))
     as.numeric(res)[1]
   }
 
-  # Einzelschätzung
   H_once <- get_H(X, n_h)
-
-  # Mehrfachschätzung und Intervall
   h_vals <- replicate(HOP_R, get_H(X, n_h))
   H_mean <- mean(h_vals)
   H_sd   <- stats::sd(h_vals)
@@ -1644,7 +1623,7 @@ if (file.exists(file_hop)) {
 
   interpretation <- dplyr::case_when(
     H_mean > 0.75 ~ "deutliche Clustertendenz",
-    H_mean < 0.25 ~ "regelmäßige anti clusternde Struktur",
+    H_mean < 0.25 ~ "regelmäßige Struktur",
     TRUE          ~ "eher zufällig verteilt"
   )
 
@@ -1669,392 +1648,244 @@ hop_res
 ```
 
 
-```{r C.6-hopkins-grid}
+
+\noindent Die Hopkins-Vorprüfung zeigt, ob der Datensatz eine hinreichende Clustertendenz aufweist und rechtfertigt damit die nachgelagerte Segmentbildung. Konzeptionell ist die Maßzahl in Abschnitt 4.3 Validierung verankert; praktisch dient sie als Vorstufe für die in Abschnitt 5.2 berichteten Clustering-Ergebnisse.
+  
+::: {#sec-anhangC.7}
+## C.7 Modellierungsschritte mit Python: K-Means und HDBSCAN auf Kundenebene {.unnumbered}
+:::
+
+Die eigentliche Clusteranalyse erfolgt auf aggregierten Kundenmerkmalen. Grundlage sind die in C.4 erzeugten `or2_purchases` und `or2_returns`.  
+Pro Kunde werden Recency, Frequency, Monetary (RFM) sowie Warenkorb- und Sortimentsmerkmale gebildet. Diese Features bilden die Basis für K-Means (zentroidbasiert) und HDBSCAN (dichtebasiert).  
+Damit die Ergebnisse reproduzierbar sind und nicht bei jedem Rendern neu gerechnet werden müssen, werden sie als `.rds` Dateien zwischengespeichert.  
+
+Die Bewertung der Cluster erfolgt später in Kapitel 5 anhand von Silhouette, Davies–Bouldin und DBCV.  
 
 
-# Datei: cache/hopkins_grid.rds = Sensitivitätsanalyse Hopkins-Statistik (verschiedene n)
 
-#| eval: !FAST
+```{r C.7-feature-engineering}
+
+#| eval: true
 #| echo: true
 #| message: false
 #| warning: false
-#| dependson: ["c6-hopkins"]
+#| dependson: ["C.4-zeit-normalisierung"]
 
-dir.create("cache", showWarnings = FALSE)
-file_grid <- "cache/hopkins_grid.rds"
+library(dplyr)
 
-if (file.exists(file_grid)) {
-  grid_tbl <- readRDS(file_grid)
+cust_file <- "cache/customer_features.rds"
+
+if (file.exists(cust_file)) {
+  cust <- readRDS(cust_file)
 } else {
-  set.seed(42)
-  n_grid <- c(50L, 100L, 200L, min(300L, nrow(X) - 1L))
+  if (!reticulate::py_has_attr(py, "or2_purchases") || !reticulate::py_has_attr(py, "or2_returns")) {
+    stop("C.7 benötigt or2_purchases und or2_returns aus C.4")
+  }
+  purch <- py$or2_purchases %>% as_tibble()
+  rets  <- py$or2_returns   %>% as_tibble()
 
-  grid_tbl <- lapply(n_grid, function(n) {
-    vals <- replicate(25L, get_H(X, n))
-    tibble(
-      hopkins_n = n,
-      mean      = mean(vals),
-      sd        = sd(vals),
-      ci_low    = mean(vals) - 1.96 * sd(vals) / sqrt(length(vals)),
-      ci_up     = mean(vals) + 1.96 * sd(vals) / sqrt(length(vals))
-    )
-  }) %>% dplyr::bind_rows() %>%
-    mutate(across(where(is.numeric), ~ round(., 3)))
+  # Snapshot für Recency
+  snapshot <- max(as.POSIXct(purch$timestamp))
 
-  saveRDS(grid_tbl, file_grid)
+  # Bestellungen pro Kunde
+  orders <- purch %>%
+    group_by(customer_id, transactionid) %>%
+    summarise(items = sum(quantity_w, na.rm=TRUE),
+              revenue = sum(revenue_w, na.rm=TRUE),
+              .groups="drop")
+
+  cust <- orders %>%
+    group_by(customer_id) %>%
+    summarise(
+      monetary           = sum(revenue, na.rm=TRUE),
+      frequency          = n_distinct(transactionid),
+      basket_items_mean  = mean(items, na.rm=TRUE),
+      basket_items_p95   = quantile(items, 0.95, na.rm=TRUE),
+      aov                = mean(revenue, na.rm=TRUE),
+      last_purchase      = max(snapshot),
+      .groups="drop"
+    ) %>%
+    mutate(recency_days = as.numeric(difftime(snapshot, last_purchase, units="days"))) %>%
+    select(-last_purchase)
+
+  # Sortimentsdiversität
+  cat_div <- purch %>%
+    group_by(customer_id) %>%
+    summarise(category_diversity = n_distinct(category), .groups="drop")
+
+  # Rückgaben
+  ret_feat <- rets %>%
+    group_by(customer_id) %>%
+    summarise(returns_abs = sum(abs(revenue_signed), na.rm=TRUE),
+              returns_cnt = n_distinct(transactionid),
+              .groups="drop")
+
+  cust <- cust %>%
+    left_join(cat_div, by="customer_id") %>%
+    left_join(ret_feat, by="customer_id") %>%
+    mutate(across(c(category_diversity, returns_abs, returns_cnt), ~replace_na(.,0)))
+
+  saveRDS(cust, cust_file)
 }
 
-grid_tbl
-
-
+head(cust, 5)
 ```
-  
-\noindent Die Hopkins-Vorprüfung zeigt, ob der Datensatz eine hinreichende Clustertendenz aufweist und rechtfertigt damit die nachgelagerte Segmentbildung. Konzeptionell ist die Maßzahl in Abschnitt 4.3 Validierung verankert; praktisch dient sie als Vorstufe für die in Abschnitt 5.2 berichteten Clustering-Ergebnisse.
-  
-
-
-
-::: {#sec-anhangC.7}
-## C.7 Modellierungsschritte mit Python: K-Means und HDBSCAN {.unnumbered}
-:::
-
-
-
-In diesem Abschnitt werden die in Abschnitt 4.2 beschriebenen Verfahren technisch umgesetzt. Die resultierenden Zuordnungen fließen in die Ergebnisdarstellung und Validierung in Abschnitt 5.2 ein. Die inhaltliche Interpretation der Segmente erfolgt in Abschnitt 5.3.
-
 
 \myheading{K-Means}
 
-K-Means dient als zentroidbasierte Referenz. Die Verfahrenseigenschaften sind in Abschnitt 4.2 beschrieben. Der hier verwendete Startwert für k wird nicht an dieser Stelle optimiert; die Zweckmäßigkeit der resultierenden Segmentstruktur wird in Abschnitt 5.2 anhand der dort berichteten Qualitätsmaße beurteilt.
+K-Means dient als Referenzverfahren. Es erzeugt k=5 Cluster (Baseline), deren Zweckmäßigkeit später mit Validierungsmaßen beurteilt wird.
+Die Ergebnisse werden als cluster_kmeans.rds gespeichert.
 
+```{python C.7-k-means}
 
-K-Means ist ein partitionierendes Verfahren, das Beobachtungen so gruppiert, dass die Variation innerhalb der Cluster minimiert und jedes Cluster durch sein Zentrum (Centroid) repräsentiert wird. Die Anzahl der Cluster \(k\) muss vorab festgelegt werden, wodurch eine Annahme über die Struktur der Daten getroffen wird.  
-
-Der K-Means-Lauf mit $k = 5$ liefert eine schnelle Baseline, führt hier aber zu stark unbalancierten Clustern (ein dominantes Groß-Cluster und mehrere kleine).  
-Ob $k = 5$ angemessen ist, prüfen wir systematisch in Kapitel 4 (u. a. Silhouette, Davies-Bouldin, Stabilität).
-
-
-Im Folgenden wird exemplarisch ein Startwert von fünf Clustern gewählt. Die eigentliche Validierung, ob diese Zahl angemessen ist, erfolgt nicht hier, sondern systematisch in [Kapitel 4: Evaluation und Ergebnisse](#sec-evaluation) anhand von Silhouette, Davies-Bouldin und Stabilitätsmaßen.
-
-```{python C.7-kmeans}
-
-
-
-# Datei: cache/cluster_kmeans.parquet = KMeans-Ergebnisse (k=5)
-
-#| dependson: ["c4-zeit-normalisierung"]
 #| eval: true
 #| echo: true
 #| message: false
 #| warning: false
+#| dependson: ["C.7-feature-engineering"]
 
 import os, numpy as np, pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 
-os.makedirs("cache", exist_ok=True)
-out_file = "cache/cluster_kmeans.parquet"
+km_file = "cache/cluster_kmeans.rds"
 
-if os.path.exists(out_file):
-    cluster_kmeans_df = pd.read_parquet(out_file)
+if os.path.exists(km_file):
+    import rpy2.robjects as ro
+    km_res = ro.r['readRDS'](km_file)
 else:
-    np.random.seed(42)
-
-    # Daten aus R (C.4 übergibt timestamp als ISO-String)
-    df = or2_time.copy()
-    df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
-
-    features = ["quantity_w", "price_w", "revenue_w"]
-    Xdf = df[features].replace([np.inf, -np.inf], np.nan).dropna()
-
+    cust = r.cust.to_pandas()
+    features = [
+        "recency_days","frequency","monetary","aov",
+        "basket_items_mean","basket_items_p95","category_diversity",
+        "returns_abs","returns_cnt"
+    ]
+    Xdf = cust[features].replace([np.inf,-np.inf], np.nan).dropna()
     X = StandardScaler().fit_transform(Xdf)
 
-    # Baseline k=5; Bewertung und Optimierung erfolgen in 5.2
     km = KMeans(n_clusters=5, random_state=42, n_init=10)
     labels = km.fit_predict(X)
 
-    out = df.loc[Xdf.index, ["customer_id", "item_id", "timestamp"]].copy()
-    out["cluster_kmeans"] = labels
+    km_res = cust.loc[Xdf.index, ["customer_id"]].copy()
+    km_res["cluster_kmeans"] = labels
 
-    # Für reticulate nach R exportieren
-    cluster_kmeans_df = out
+    import rpy2.robjects as ro
+    ro.r['saveRDS'](ro.conversion.py2rpy(km_res), km_file)
 
-    # Datei speichern
-    cluster_kmeans_df.to_parquet(out_file, index=False)
-
-cluster_kmeans_df.head(10)
-
-
+km_res.head(10)
 ```
-
-\medskip
-
-\noindent Das Ergebnis ist eine Zuordnung jeder Beobachtung zu einem Cluster. Die Details zur Beurteilung der Clusterqualität und -anzahl erfolgen später in [Kapitel 4](#sec-evaluation).
 
 \myheading{HDBSCAN}
 
-HDBSCAN bildet als dichtebasiertes Verfahren ungleichförmige Strukturen und Rauschen ab. Die Verfahrenseigenschaften sind in Abschnitt 4.2 beschrieben. Die Bewertung der resultierenden Struktur erfolgt in Abschnitt 5.2; die inhaltliche Einordnung der Segmente folgt in Abschnitt 5.3.
-
-HDBSCAN ist ein hierarchisch-dichtebasiertes Verfahren, das im Gegensatz zu K-Means keine feste Clusteranzahl vorgibt. Stattdessen werden Regionen hoher Dichte als Cluster erkannt, während dünn besetzte Bereiche als Rauschen ausgewiesen werden. Damit eignet sich HDBSCAN besonders für komplex geformte und unterschiedlich große Cluster.
+HDBSCAN ist ein dichtebasiertes Verfahren. Es identifiziert Cluster adaptiv und weist dünn besetzte Regionen als Rauschen aus.
+Die Ergebnisse werden als cluster_hdbscan.rds gespeichert.
 
 ```{python C.7-hdbscan}
 
-
-# Datei: cache/cluster_hdbscan.parquet = HDBSCAN-Ergebnisse
-
-#| dependson: ["c4-zeit-normalisierung"]
 #| eval: true
 #| echo: true
 #| message: false
 #| warning: false
+#| dependson: ["C.7-feature-engineering"]
 
 import os, numpy as np, pandas as pd
 from sklearn.preprocessing import StandardScaler
-from sklearn.utils.validation import check_array
-
-np.random.seed(42)
 
 try:
     import hdbscan
-except Exception:
-    raise SystemExit("HDBSCAN ist nicht installiert. Bitte ausführen: pip install hdbscan")
-
-os.makedirs("cache", exist_ok=True)
-out_file = "cache/cluster_hdbscan.parquet"
-
-if os.path.exists(out_file):
-    cluster_hdbscan_df = pd.read_parquet(out_file)
-else:
-    df = or2_time.copy()
-    df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
-
-    features = ["quantity_w", "price_w", "revenue_w"]
-    Xdf = df[features].replace([np.inf, -np.inf], np.nan).dropna()
-
-    # optionales Downsampling für sehr große Datensätze
-    n_max = 200_000
-    if len(Xdf) > n_max:
-        Xdf = Xdf.sample(n=n_max, random_state=42)
-
-    X_np = check_array(Xdf.to_numpy(dtype=float), ensure_all_finite=True)
-    X = StandardScaler(copy=True).fit_transform(X_np)
-
-    clusterer = hdbscan.HDBSCAN(
-        min_cluster_size=50,
-        min_samples=5,
-        metric="euclidean",
-        cluster_selection_method="eom",
-        approx_min_span_tree=False,
-        core_dist_n_jobs=1
-    )
-    labels_h = clusterer.fit_predict(X)
-
-    out = df.loc[Xdf.index, ["customer_id", "item_id", "timestamp"]].copy()
-    out["cluster_hdbscan"] = labels_h
-
-    # Für reticulate nach R exportieren
-    cluster_hdbscan_df = out
-
-    # kurze Zusammenfassung
-    n_rows      = len(out)
-    n_clusters  = int(labels_h.max() + 1) if labels_h.max() >= 0 else 0
-    noise_count = int((labels_h == -1).sum())
-    noise_share = float((labels_h == -1).mean())
-
-    print({
-        "n_zeilen_zugeordnet": n_rows,
-        "n_cluster": n_clusters,
-        "noise_anzahl": noise_count,
-        "noise_anteil": round(noise_share, 4)
-    })
-
-    # Datei speichern
-    cluster_hdbscan_df.to_parquet(out_file, index=False)
-
-cluster_hdbscan_df.head(10)
-
-
-```
-
-\medskip
-
-\noindent Das Ergebnis zeigt eine sehr feingranulare Struktur mit vielen kleinen Clustern und einem gewissen Anteil an Beobachtungen, die als Rauschen gekennzeichnet sind. Dies illustriert den methodischen Unterschied: Während K-Means größere, homogene Segmente erzwingt, identifiziert HDBSCAN detaillierte Nischenmuster. Eine Bewertung, welche Methode für CRM-Segmente geeigneter ist, erfolgt in [Kapitel 4].
-
-```{python C.7-validierung}
-
-
-# Datei: cache/validation.json = Qualitätsmaße (Silhouette, DBCV)
-
-#| dependson: ["c7-kmeans","c7-hdbscan"]
-#| eval: true
-#| echo: true
-#| message: false
-#| warning: false
-
-import os, json
-import numpy as np
-import pandas as pd
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
-
-try:
-    import hdbscan
-    from hdbscan.validity import validity_index  # DBCV
-except Exception:
+except:
     raise SystemExit("Bitte hdbscan installieren: pip install hdbscan")
 
-os.makedirs("cache", exist_ok=True)
-out_file = "cache/validation.json"
+hdb_file = "cache/cluster_hdbscan.rds"
 
-if os.path.exists(out_file):
-    with open(out_file, "r") as f:
-        results = json.load(f)
+if os.path.exists(hdb_file):
+    import rpy2.robjects as ro
+    hdb_res = ro.r['readRDS'](hdb_file)
 else:
-    np.random.seed(42)
-
-    df = or2_time.copy()
-    features = ["quantity_w", "price_w", "revenue_w"]
-    Xdf = df[features].replace([np.inf, -np.inf], np.nan).dropna()
+    cust = r.cust.to_pandas()
+    features = [
+        "recency_days","frequency","monetary","aov",
+        "basket_items_mean","basket_items_p95","category_diversity",
+        "returns_abs","returns_cnt"
+    ]
+    Xdf = cust[features].replace([np.inf,-np.inf], np.nan).dropna()
     X = StandardScaler().fit_transform(Xdf)
 
-    # Silhouette für die K-Means-Baseline k=5
+    clusterer = hdbscan.HDBSCAN(min_cluster_size=30, min_samples=None,
+                                cluster_selection_epsilon=0.0,
+                                metric="euclidean",
+                                cluster_selection_method="eom")
+    labels = clusterer.fit_predict(X)
+
+    hdb_res = cust.loc[Xdf.index, ["customer_id"]].copy()
+    hdb_res["cluster_hdbscan"] = labels
+
+    import rpy2.robjects as ro
+    ro.r['saveRDS'](ro.conversion.py2rpy(hdb_res), hdb_file)
+
+hdb_res.head(10)
+```
+
+\myheading{Validierung}
+
+Die Qualität der Cluster wird mit Silhouette (K-Means), Davies–Bouldin (K-Means) und DBCV (HDBSCAN) bewertet.
+Ergebnisse werden in cache/cluster_metrics.rds gespeichert.
+
+```{python C.7-validierung}
+#| eval: true
+#| echo: true
+#| message: false
+#| warning: false
+#| dependson: ["C.7-kmeans","C.7-hdbscan"]
+
+import os, numpy as np, pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score, davies_bouldin_score
+
+try:
+    import hdbscan
+    from hdbscan.validity import validity_index
+except:
+    raise SystemExit("Bitte hdbscan installieren: pip install hdbscan")
+
+metrics_file = "cache/cluster_metrics.rds"
+
+if os.path.exists(metrics_file):
+    import rpy2.robjects as ro
+    metrics = ro.r['readRDS'](metrics_file)
+else:
+    cust = r.cust.to_pandas()
+    features = [
+        "recency_days","frequency","monetary","aov",
+        "basket_items_mean","basket_items_p95","category_diversity",
+        "returns_abs","returns_cnt"
+    ]
+    Xdf = cust[features].replace([np.inf,-np.inf], np.nan).dropna()
+    X = StandardScaler().fit_transform(Xdf)
+
+    # KMeans
     km = KMeans(n_clusters=5, random_state=42, n_init=10)
     lab_km = km.fit_predict(X)
-    sil = float(silhouette_score(X, lab_km)) if len(np.unique(lab_km)) > 1 else None
+    sil = silhouette_score(X, lab_km) if len(set(lab_km))>1 else np.nan
+    db  = davies_bouldin_score(X, lab_km) if len(set(lab_km))>1 else np.nan
 
-    # DBCV für HDBSCAN
-    hdb = hdbscan.HDBSCAN(min_cluster_size=50, min_samples=5,
-                          metric="euclidean", cluster_selection_method="eom",
-                          approx_min_span_tree=False, core_dist_n_jobs=1)
+    # HDBSCAN
+    hdb = hdbscan.HDBSCAN(min_cluster_size=30, min_samples=None,
+                          metric="euclidean", cluster_selection_method="eom")
     lab_h = hdb.fit_predict(X)
-
     mask = lab_h >= 0
-    dbcv = float(validity_index(X[mask], lab_h[mask], metric="euclidean")) if mask.sum() > 1 and len(np.unique(lab_h[mask])) > 1 else None
+    dbcv = validity_index(X[mask], lab_h[mask]) if mask.sum()>1 and len(set(lab_h[mask]))>1 else np.nan
 
-    results = {"silhouette_kmeans_k5": sil, "dbcv_hdbscan": dbcv}
+    metrics = pd.DataFrame([{
+        "silhouette_kmeans": sil,
+        "davies_bouldin_kmeans": db,
+        "dbcv_hdbscan": dbcv,
+        "n_customers": X.shape[0]
+    }])
 
-    with open(out_file, "w") as f:
-        json.dump(results, f)
+    import rpy2.robjects as ro
+    ro.r['saveRDS'](ro.conversion.py2rpy(metrics), metrics_file)
 
-results
-
-
+metrics
 ```
-
-
-
-
-```{r C.7-reticulate-check}
-
-
-#| dependson: ["c7-kmeans","c7-hdbscan"]
-#| eval: true
-#| echo: true
-#| message: false
-#| warning: false
-
-if (reticulate::py_has_attr(py, "cluster_kmeans_df")) {
-  head(py$cluster_kmeans_df, 5)
-} else {
-  cat("cluster_kmeans_df nicht verfügbar\n")
-}
-
-if (reticulate::py_has_attr(py, "cluster_hdbscan_df")) {
-  head(py$cluster_hdbscan_df, 5)
-} else {
-  cat("cluster_hdbscan_df nicht verfügbar\n")
-}
-
-```
-
-```{r C.7b-boot-ari}
-
-
-# Datei: cache/bootstrap_ari.rds = Bootstrap-ARI für KMeans-Stabilität
-
-#| dependson: ["c4-zeit-normalisierung"]
-#| eval: true
-#| echo: true
-#| message: false
-#| warning: false
-
-library(dplyr)
-library(mclust)
-
-set.seed(42)
-dir.create("cache", showWarnings = FALSE)
-ari_file <- "cache/bootstrap_ari.rds"
-
-if (file.exists(ari_file)) {
-  ari_res <- readRDS(ari_file)
-} else {
-  # Optionaler Schnellmodus aus C.4; falls nicht gesetzt, hier definieren
-  if (!exists("FAST")) FAST <- TRUE
-
-  # Daten vorbereiten (optional: Downsampling für große Datenmengen)
-  N_MAX <- if (FAST) 100000L else Inf
-
-  dat <- or2_time %>%
-    select(quantity_w, price_w, revenue_w) %>%
-    filter(if_all(everything(), is.finite(.)))
-
-  if (is.finite(N_MAX) && nrow(dat) > N_MAX) {
-    dat <- dplyr::slice_sample(dat, n = N_MAX)
-  }
-
-  X <- scale(as.matrix(dat))
-
-  # k aus vorherigem K-Means übernehmen, falls vorhanden; sonst Baseline k = 5
-  k <- 5L
-  if (reticulate::py_has_attr(py, "cluster_kmeans_df")) {
-    k <- dplyr::n_distinct(py$cluster_kmeans_df$cluster_kmeans)
-    if (is.na(k) || k < 2L) k <- 5L
-  }
-
-  # Bootstrap-Parameter
-  B <- if (FAST) 10L else 20L
-  aris <- numeric(B)
-
-  # ARI misst die Übereinstimmung zweier unabhängiger Initialisierungen
-  # auf identischer Bootstrap-Stichprobe und quantifiziert so die
-  # Stabilität der K-Means-Zuordnung (Bewertung in 5.2)
-  for (b in seq_len(B)) {
-    idx <- sample(seq_len(nrow(X)), replace = TRUE)
-    km1 <- stats::kmeans(X[idx, , drop = FALSE], centers = k, nstart = 10)
-    km2 <- stats::kmeans(X[idx, , drop = FALSE], centers = k, nstart = 10)
-    aris[b] <- mclust::adjustedRandIndex(km1$cluster, km2$cluster)
-  }
-
-  ari_res <- data.frame(
-    n = nrow(X),
-    k = k,
-    bootstrap_runs = B,
-    ari_mean = mean(aris),
-    ari_sd   = sd(aris)
-  )
-
-  saveRDS(ari_res, ari_file)
-}
-
-ari_res
-
-
-```
-
-
-
-
-
-\clearpage
-
-
-
-
-
-
-
-
-
-
-<!-- ================= Ende ================= -->
