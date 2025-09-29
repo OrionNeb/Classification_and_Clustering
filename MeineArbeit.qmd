@@ -1299,13 +1299,6 @@ rr_clean <- rr_events %>%
 
 # Online Retail II: Rückgaben sauber behandeln
 or2_clean <- or2_events %>%
-  select(transactionid, item_id, customer_id, timestamp, quantity, price, country, description,
-         event_type, revenue, category) %>%
-  mutate(
-    quantity = suppressWarnings(as.numeric(quantity)),
-    price    = suppressWarnings(as.numeric(price))
-  ) %>%
-  filter(!is.na(customer_id), !is.na(item_id), !is.na(timestamp)) %>%
   mutate(
     return_flag     = (!is.na(quantity) & quantity < 0) |
                       (!is.na(transactionid) & str_starts(as.character(transactionid), "C")),
@@ -1315,12 +1308,15 @@ or2_clean <- or2_events %>%
     revenue_abs     = quantity_abs * price,
     category        = coalesce(category, description)
   ) %>%
-  distinct(transactionid, item_id, customer_id, timestamp, quantity_abs, price, event_type, .keep_all = TRUE) %>%
   mutate(
     quantity_w = safe_winsorize(quantity_abs, 0.01, 0.99),
     price_w    = safe_winsorize(price,       0.01, 0.99),
     revenue_w  = quantity_w * price_w
   ) %>%
+  select(transactionid, item_id, customer_id, timestamp,
+         quantity_abs, quantity_w, price, price_w, event_type,
+         revenue_signed, revenue_abs, revenue_w,
+         category, country, description) %>%
   filter(is.na(quantity_w) | quantity_w > 0,
          is.na(price_w)    | price_w    > 0)
 
@@ -1432,7 +1428,7 @@ py$or2_purchases <- or2_time %>%
 
 py$or2_returns <- or2_time %>%
   filter(event_type == "return") %>%
-  select(transactionid, customer_id, timestamp = timestamp_iso, revenue_signed)
+  select(transactionid, customer_id, timestamp = timestamp_iso, revenue_w)
 
 list(
   rr_time_head  = head(select(rr_time,  customer_id, item_id, timestamp, timestamp_iso, event_type), 3),
