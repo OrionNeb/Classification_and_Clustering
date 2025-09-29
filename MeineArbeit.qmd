@@ -322,6 +322,31 @@ Eine ausführlichere und beispielhafte Darstellung dieser Konzepte erfolgt in [A
 
 ## Clustering-Verfahren (K-Means, HDBSCAN - zentrale Eigenschaften) {#sec-clustering-verfahren}
 
+In dieser Arbeit werden zwei komplementäre Verfahren eingesetzt, um unterschiedliche Strukturannahmen im Merkmalsraum abzudecken: **K-Means** als zentroidbasiertes Referenzverfahren sowie **HDBSCAN** als dichtebasierte, hierarchische Methode. Die Kombination erlaubt sowohl kompakte, annähernd kugelförmige Muster (K-Means) als auch unregelmäßige Strukturen mit lokal variierender Dichte und expliziter Rauschbehandlung (HDBSCAN) zu erfassen (@tsiptsisDataMiningTechniques2010, S. 85–86; @chakrabortyDataClassificationIncremental2022, S. 87–96).
+
+\myheading{K-Means: Partitionierung mit Zentroiden}
+
+K-Means „starts with an initial cluster solution which is updated and adjusted until no further refinement is possible … Each iteration refines the solution by reducing the within-cluster variation“ (@tsiptsisDataMiningTechniques2010, S. 85). Die Anzahl der Cluster *k* wird vorab festgelegt; jedes Cluster wird durch sein Zentrum (Zentroid) repräsentiert, typischerweise unter euklidischer Distanz. Damit liefert K-Means klar interpretierbare **Zentroidprofile**, ist aber am stärksten dort, wo Cluster kompakt und ungefähr kugelförmig sind (@tsiptsisDataMiningTechniques2010, S. 85–86).  
+
+Für die Anfangswahl von *k* wird zunächst eine kleine Bandbreite getestet (z. B. k = 3–8); die **tatsächliche** Clusterzahl wird anschließend über interne Gütemaße (u. a. Silhouette, Davies–Bouldin) sowie Stabilität entschieden (vgl. Abschnitt \@sec-evaluation). Ergänzend verweisen neuere Arbeiten auf Varianten und Initialisierungsstrategien, die Robustheit und Konvergenz verbessern (@laiSilhouetteCoefficientbasedWeighting2025).
+
+\myheading{HDBSCAN: Dichtebasierte Hierarchie mit Rauschen}
+
+Dichtebasierte Ansätze identifizieren Cluster als Bereiche **hoher Punktdichte** und weisen dünn besetzte Regionen als **Rauschen** aus; klassisch erfolgt dies über ε und MinPts (DBSCAN). **HDBSCAN** erweitert dieses Prinzip hierarchisch, extrahiert stabile Cluster über ein Spektrum von Dichteschwellen und **erfordert keine feste Vorgabe von *k***. Dadurch lassen sich nicht-konvexe Formen, lokal variierende Dichten und Ausreißer natürlicher behandeln (@chakrabortyDataClassificationIncremental2022, S. 87–89, 96).  
+
+Die Qualitätsbewertung dichtebasierter Lösungen erfolgt mit **DBCV** (Density-Based Clustering Validation), das die „within- and between-cluster density connectedness“ misst und den Einfluss von Rauschen sachgerecht einbezieht (@moulaviDensityBasedClustering2014).
+
+\myheading{Warum zwei Verfahren?}
+
+- **Modellannahmen**: K-Means adressiert kompakte Cluster und liefert gut lesbare Zentroidprofile (nützlich für Personas/Profiling). HDBSCAN erkennt **arbiträre Formen** und separiert **Rauschen**, was bei E-Commerce-Daten mit Ausreißern/Saisonalitäten vorteilhaft ist (@chakrabortyDataClassificationIncremental2022).  
+- **Praxisnutzen**: Der Methoden-Kontrast reduziert das Risiko methodischer Scheinsicherheit und erhöht die Wahrscheinlichkeit, robuste, **geschäftlich interpretierbare** Segmente zu finden.  
+- **Evaluation**: Je Verfahren passende Indizes: **Silhouette** und **Davies–Bouldin** für K-Means sowie **DBCV** für HDBSCAN; Stabilität via Bootstrapping/ARI, Clustertendenz vorab via **Hopkins** (vgl. \@sec-validierung und \@sec-evaluation; @laiSilhouetteCoefficientbasedWeighting2025; @moulaviDensityBasedClustering2014).
+
+\myheading{Einbettung in CRISP-DM}
+
+Die Modellierung folgt CRISP-DM: gemeinsame Merkmalsbasis (RFM, Warenkorb, Sortiment etc.), dann parallele Kalibrierung beider Verfahren und methodengerechte Validierung; Ergebnisse werden reproduzierbar dokumentiert und für die **Segmentprofile/Personas** aufbereitet (@wirthCRISPDMStandardProcess2000). 
+
+
 ## Clustertendenz und Modelle Hopkins, K-Means, HDBSCAN {#sec-clustertendenz}
 
 Bevor konkrete Clusterverfahren eingesetzt werden, wird mit der Hopkins-Statistik geprüft, ob die Daten überhaupt eine erkennbare Tendenz zur Bildung von Clustern aufweisen. Werte nahe 0,5 deuten auf eine gleichmäßige Streuung ohne klare Gruppen hin, während Werte oberhalb von 0,75 auf deutliche Clustermuster schließen lassen. Vorgehen, Stichprobenumfang, Reproduzierbarkeit und Ergebniszusammenfassung sind in [Anhang C.6: Clustertendenz und Testverfahren](#sec-anhangC6) dokumentiert.
@@ -1439,7 +1464,6 @@ Zentrale Fragen der Plausibilisierung sind: \smallskip
 
 ```{r C.5-zusammenfassung}
 
-
 #| eval: true
 #| echo: true
 #| message: false
@@ -1450,105 +1474,75 @@ library(dplyr)
 library(tidyr)
 library(lubridate)
 
-if (!exists("rr_time") || !exists("or2_time")) {
-  stop("C.5 benötigt rr_time und or2_time aus C.4.")
-}
-
+if (!exists("rr_time") || !exists("or2_time")) stop("C.5 benötigt rr_time und or2_time aus C.4.")
 file_sum <- "cache/zusammenfassung.rds"
 
 if (file.exists(file_sum)) {
   res <- readRDS(file_sum)
 } else {
-
   dim_summary <- tibble::tibble(
     datensatz = c("RetailRocket (bereinigt + normalisiert)", "Online Retail II (bereinigt + normalisiert)"),
     n_zeilen  = c(nrow(rr_time), nrow(or2_time)),
     n_spalten = c(ncol(rr_time), ncol(or2_time))
   )
 
-  missing_rr  <- rr_time  %>%
-    summarise(across(c(customer_id, item_id, timestamp, event_type), ~ sum(is.na(.)))) %>%
-    pivot_longer(everything(), names_to = "feld", values_to = "missing") %>%
-    mutate(datensatz = "RetailRocket")
+  missing_rr  <- rr_time  %>% summarise(across(c(customer_id, item_id, timestamp, event_type), ~ sum(is.na(.)))) %>%
+    pivot_longer(everything(), names_to = "feld", values_to = "missing") %>% mutate(datensatz = "RetailRocket")
 
-  missing_or2 <- or2_time %>%
-    summarise(across(c(customer_id, item_id, timestamp, event_type, quantity_w, price_w, revenue_w), ~ sum(is.na(.)))) %>%
-    pivot_longer(everything(), names_to = "feld", values_to = "missing") %>%
-    mutate(datensatz = "Online Retail II")
+  missing_or2 <- or2_time %>% summarise(across(c(customer_id, item_id, timestamp, event_type, quantity_w, price_w, revenue_w), ~ sum(is.na(.)))) %>%
+    pivot_longer(everything(), names_to = "feld", values_to = "missing") %>% mutate(datensatz = "Online Retail II")
 
-  missing_summary <- bind_rows(missing_rr, missing_or2) %>% relocate(datensatz)
-
-  dup_rr <- rr_time %>%
-    mutate(key = paste(customer_id, item_id, timestamp, event_type, sep = "|")) %>%
-    summarise(dups = sum(duplicated(key)), share = round(mean(duplicated(key)), 6)) %>%
-    mutate(datensatz = "RetailRocket")
-
-  dup_or2 <- or2_time %>%
-    mutate(key = paste(customer_id, item_id, timestamp, event_type, sep = "|")) %>%
-    summarise(dups = sum(duplicated(key)), share = round(mean(duplicated(key)), 6)) %>%
-    mutate(datensatz = "Online Retail II")
-
-  duplicate_summary <- bind_rows(dup_rr, dup_or2) %>% relocate(datensatz)
+  duplicate_summary <- bind_rows(
+    rr_time %>% mutate(key = paste(customer_id, item_id, timestamp, event_type, sep = "|")) %>%
+      summarise(dups = sum(duplicated(key)), share = round(mean(duplicated(key)), 6)) %>% mutate(datensatz = "RetailRocket"),
+    or2_time %>% mutate(key = paste(customer_id, item_id, timestamp, event_type, sep = "|")) %>%
+      summarise(dups = sum(duplicated(key)), share = round(mean(duplicated(key)), 6)) %>% mutate(datensatz = "Online Retail II")
+  ) %>% relocate(datensatz)
 
   quantiles <- c(0, .01, .05, .25, .5, .75, .95, .99, 1)
 
   dist_or2 <- or2_time %>%
+    filter(event_type == "purchase") %>%                                  # nur Käufe
     select(quantity_w, price_w, revenue_w) %>%
     pivot_longer(everything(), names_to = "variable", values_to = "wert") %>%
     filter(is.finite(wert)) %>%
     group_by(variable) %>%
     summarise(
-      n         = n(),
-      missing   = sum(is.na(wert)),
-      mean      = mean(wert, na.rm = TRUE),
-      sd        = sd(wert, na.rm = TRUE),
-      q0        = quantile(wert, probs = quantiles[1], na.rm = TRUE),
-      q01       = quantile(wert, probs = quantiles[2], na.rm = TRUE),
-      q05       = quantile(wert, probs = quantiles[3], na.rm = TRUE),
-      q25       = quantile(wert, probs = quantiles[4], na.rm = TRUE),
-      q50       = quantile(wert, probs = quantiles[5], na.rm = TRUE),
-      q75       = quantile(wert, probs = quantiles[6], na.rm = TRUE),
-      q95       = quantile(wert, probs = quantiles[7], na.rm = TRUE),
-      q99       = quantile(wert, probs = quantiles[8], na.rm = TRUE),
-      q100      = quantile(wert, probs = quantiles[9], na.rm = TRUE),
-      .groups = "drop"
-    ) %>%
-    mutate(across(where(is.numeric), ~ round(., 4)))
+      n=n(), missing=sum(is.na(wert)),
+      mean=mean(wert,na.rm=TRUE), sd=sd(wert,na.rm=TRUE),
+      q0=quantile(wert,0,na.rm=TRUE), q01=quantile(wert,.01,na.rm=TRUE),
+      q05=quantile(wert,.05,na.rm=TRUE), q25=quantile(wert,.25,na.rm=TRUE),
+      q50=quantile(wert,.5,na.rm=TRUE),  q75=quantile(wert,.75,na.rm=TRUE),
+      q95=quantile(wert,.95,na.rm=TRUE), q99=quantile(wert,.99,na.rm=TRUE),
+      q100=quantile(wert,1,na.rm=TRUE), .groups="drop"
+    )
 
-  evt_rr  <- rr_time  %>% count(event_type, name = "n") %>% mutate(datensatz = "RetailRocket") %>% relocate(datensatz)
-  evt_or2 <- or2_time %>% count(event_type, name = "n") %>% mutate(datensatz = "Online Retail II") %>% relocate(datensatz)
-  event_summary <- bind_rows(evt_rr, evt_or2)
+  event_summary <- bind_rows(
+    rr_time  %>% count(event_type, name = "n") %>% mutate(datensatz = "RetailRocket"),
+    or2_time %>% count(event_type, name = "n") %>% mutate(datensatz = "Online Retail II")
+  ) %>% relocate(datensatz)
 
-  cover_rr <- rr_time %>%
-    mutate(year_month = format(as.Date(timestamp), "%Y-%m")) %>%
-    count(year_month, name = "n") %>%
-    mutate(datensatz = "RetailRocket") %>%
-    select(datensatz, everything())
-
-  cover_or2 <- or2_time %>%
-    mutate(year_month = format(as.Date(timestamp), "%Y-%m")) %>%
-    count(year_month, name = "n") %>%
-    mutate(datensatz = "Online Retail II") %>%
-    select(datensatz, everything())
-
-  coverage_summary <- bind_rows(cover_rr, cover_or2) %>% arrange(datensatz, year_month)
+  coverage_summary <- bind_rows(
+    rr_time %>% mutate(year_month = format(as.Date(timestamp), "%Y-%m")) %>%
+      count(year_month, name = "n") %>% mutate(datensatz = "RetailRocket"),
+    or2_time %>% mutate(year_month = format(as.Date(timestamp), "%Y-%m")) %>%
+      count(year_month, name = "n") %>% mutate(datensatz = "Online Retail II")
+  ) %>% arrange(datensatz, year_month)
 
   res <- list(
     dimensionen         = dim_summary,
-    fehlende_werte      = missing_summary,
+    fehlende_werte      = bind_rows(missing_rr, missing_or2) %>% relocate(datensatz),
     duplikate           = duplicate_summary,
     verteilungen_or2    = dist_or2,
     ereignisse          = event_summary,
-    zeitliche_abdeckung = coverage_summary,
-    beispiel_rr         = head(select(rr_time, customer_id, item_id, timestamp, event_type), 5),
-    beispiel_or2        = head(select(or2_time, customer_id, item_id, timestamp, event_type,
-                                      quantity_w, price_w, revenue_w), 5)
+    zeitliche_abdeckung = coverage_summary
   )
 
-  saveRDS(res, file_sum)
+  saveRDS(res, file_sum, compress = "xz")
 }
 
 res
+
 
 ```
 
@@ -1596,10 +1590,11 @@ if (file.exists(file_hop)) {
 } else {
   set.seed(42)
   HOP_NROWS <- if (FAST) 1500L else 5000L
-  HOP_R     <- if (FAST) 10L   else 25L
+  HOP_R     <- if (FAST) 15L   else 40L
   HOP_N     <- 300L
 
   dat0 <- or2_time %>%
+    filter(event_type == "purchase") %>%            # nur Käufe für Clustertendenz
     select(quantity_w, price_w, revenue_w) %>%
     filter(if_all(everything(), ~ is.finite(.)))
   stopifnot(nrow(dat0) >= 50)
@@ -1614,17 +1609,14 @@ if (file.exists(file_hop)) {
     as.numeric(res)[1]
   }
 
-  H_once <- get_H(X, n_h)
   h_vals <- replicate(HOP_R, get_H(X, n_h))
-  H_mean <- mean(h_vals)
-  H_sd   <- stats::sd(h_vals)
+  H_mean <- mean(h_vals); H_med <- median(h_vals); H_sd <- stats::sd(h_vals)
   H_ci   <- c(H_mean - 1.96 * H_sd / sqrt(HOP_R),
               H_mean + 1.96 * H_sd / sqrt(HOP_R))
-
   interpretation <- dplyr::case_when(
-    H_mean > 0.75 ~ "deutliche Clustertendenz",
-    H_mean < 0.25 ~ "regelmäßige Struktur",
-    TRUE          ~ "eher zufällig verteilt"
+    H_med > 0.75 ~ "deutliche Clustertendenz",
+    H_med < 0.25 ~ "regelmäßige Struktur",
+    TRUE         ~ "eher zufällig verteilt"
   )
 
   hop_res <- tibble(
@@ -1632,18 +1624,16 @@ if (file.exists(file_hop)) {
     n_verwendet  = nrow(X),
     hopkins_n    = n_h,
     repeats      = HOP_R,
-    H_once       = round(H_once, 3),
     H_mean       = round(H_mean, 3),
+    H_median     = round(H_med, 3),
+    H_sd         = round(H_sd, 3),
     H_ci_low     = round(H_ci[1], 3),
     H_ci_up      = round(H_ci[2], 3),
     einordnung   = interpretation
   )
-
-  saveRDS(hop_res, file_hop)
+  saveRDS(hop_res, file_hop, compress = "xz")
 }
-
 hop_res
-
 
 ```
 
@@ -1672,8 +1662,12 @@ Die Bewertung der Cluster erfolgt später in Kapitel 5 anhand von Silhouette, Da
 #| dependson: ["C.4-zeit-normalisierung"]
 
 library(dplyr)
+library(lubridate)
+library(tidyr)
+library(purrr)
 
 cust_file <- "cache/customer_features.rds"
+dir.create("cache", showWarnings = FALSE)
 
 if (file.exists(cust_file)) {
   cust <- readRDS(cust_file)
@@ -1684,16 +1678,19 @@ if (file.exists(cust_file)) {
   purch <- py$or2_purchases %>% as_tibble()
   rets  <- py$or2_returns   %>% as_tibble()
 
-  # Snapshot für Recency
-  snapshot <- max(as.POSIXct(purch$timestamp))
+  # Timestamps korrekt parsen
+  purch <- purch %>% mutate(ts = ymd_hms(timestamp, tz = "UTC"))
+  snapshot <- max(purch$ts, na.rm = TRUE)
 
   # Bestellungen pro Kunde
   orders <- purch %>%
     group_by(customer_id, transactionid) %>%
     summarise(items = sum(quantity_w, na.rm=TRUE),
               revenue = sum(revenue_w, na.rm=TRUE),
+              ts_max = max(ts, na.rm = TRUE),
               .groups="drop")
 
+  # Basis-Features inkl. richtiger Recency
   cust <- orders %>%
     group_by(customer_id) %>%
     summarise(
@@ -1702,30 +1699,50 @@ if (file.exists(cust_file)) {
       basket_items_mean  = mean(items, na.rm=TRUE),
       basket_items_p95   = quantile(items, 0.95, na.rm=TRUE),
       aov                = mean(revenue, na.rm=TRUE),
-      last_purchase      = max(snapshot),
+      last_purchase      = max(ts_max, na.rm=TRUE),
       .groups="drop"
     ) %>%
     mutate(recency_days = as.numeric(difftime(snapshot, last_purchase, units="days"))) %>%
     select(-last_purchase)
 
-  # Sortimentsdiversität
-  cat_div <- purch %>%
+  # Sortimentsdiversität über Umsatzanteile
+  # HHI: Summe der quadrierten Umsatzanteile, Entropie: -Sum(p*log(p))
+  dist_tab <- purch %>%
+    mutate(rev = revenue_w) %>%
+    group_by(customer_id, category) %>%
+    summarise(rev_cat = sum(rev, na.rm=TRUE), .groups="drop") %>%
     group_by(customer_id) %>%
-    summarise(category_diversity = n_distinct(category), .groups="drop")
+    mutate(rev_sum = sum(rev_cat, na.rm=TRUE),
+           p = if_else(rev_sum > 0, rev_cat / rev_sum, 0)) %>%
+    summarise(
+      category_diversity = n_distinct(category),
+      hhi_rev = sum(p^2, na.rm=TRUE),
+      entropy_rev = -sum(if_else(p > 0, p*log(p), 0), na.rm=TRUE),
+      .groups="drop"
+    )
 
-  # Rückgaben
+  # Rückgaben-Features
   ret_feat <- rets %>%
+    mutate(ts = ymd_hms(timestamp, tz = "UTC")) %>%
     group_by(customer_id) %>%
     summarise(returns_abs = sum(abs(revenue_signed), na.rm=TRUE),
               returns_cnt = n_distinct(transactionid),
               .groups="drop")
 
   cust <- cust %>%
-    left_join(cat_div, by="customer_id") %>%
+    left_join(dist_tab, by="customer_id") %>%
     left_join(ret_feat, by="customer_id") %>%
-    mutate(across(c(category_diversity, returns_abs, returns_cnt), ~replace_na(.,0)))
+    mutate(across(c(category_diversity, hhi_rev, entropy_rev, returns_abs, returns_cnt),
+                  ~replace_na(.,0))) %>%
+    # optionale Log-Transformationen für heavy-tailed Variablen
+    mutate(
+      monetary_log = log1p(monetary),
+      aov_log      = log1p(aov),
+      frequency_log= log1p(frequency),
+      returns_abs_log = log1p(returns_abs)
+    )
 
-  saveRDS(cust, cust_file)
+  saveRDS(cust, cust_file, compress = "xz")
 }
 
 head(cust, 5)
@@ -1736,7 +1753,7 @@ head(cust, 5)
 K-Means dient als Referenzverfahren. Es erzeugt k=5 Cluster (Baseline), deren Zweckmäßigkeit später mit Validierungsmaßen beurteilt wird.
 Die Ergebnisse werden als cluster_kmeans.rds gespeichert.
 
-```{python C.7-k-means}
+```{python C.7-kmeans}
 
 #| eval: true
 #| echo: true
@@ -1748,29 +1765,25 @@ import os, numpy as np, pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 
-km_file = "cache/cluster_kmeans.rds"
+os.makedirs("cache", exist_ok=True)
+out_csv = "cache/cluster_kmeans.csv"
 
-if os.path.exists(km_file):
-    import rpy2.robjects as ro
-    km_res = ro.r['readRDS'](km_file)
-else:
-    cust = r.cust.to_pandas()
-    features = [
-        "recency_days","frequency","monetary","aov",
-        "basket_items_mean","basket_items_p95","category_diversity",
-        "returns_abs","returns_cnt"
-    ]
-    Xdf = cust[features].replace([np.inf,-np.inf], np.nan).dropna()
-    X = StandardScaler().fit_transform(Xdf)
+cust = r.cust.to_pandas()
+features = [
+    "recency_days","frequency","monetary","aov",
+    "basket_items_mean","basket_items_p95","category_diversity",
+    "hhi_rev","entropy_rev","returns_abs","returns_cnt",
+    "monetary_log","aov_log","frequency_log","returns_abs_log"
+]
+Xdf = cust[features].replace([np.inf,-np.inf], np.nan).dropna()
+X = StandardScaler().fit_transform(Xdf)
 
-    km = KMeans(n_clusters=5, random_state=42, n_init=10)
-    labels = km.fit_predict(X)
+km = KMeans(n_clusters=5, random_state=42, n_init=25)
+labels = km.fit_predict(X)
 
-    km_res = cust.loc[Xdf.index, ["customer_id"]].copy()
-    km_res["cluster_kmeans"] = labels
-
-    import rpy2.robjects as ro
-    ro.r['saveRDS'](ro.conversion.py2rpy(km_res), km_file)
+km_res = cust.loc[Xdf.index, ["customer_id"]].copy()
+km_res["cluster_kmeans"] = labels
+km_res.to_csv(out_csv, index=False)
 
 km_res.head(10)
 ```
@@ -1790,38 +1803,28 @@ Die Ergebnisse werden als cluster_hdbscan.rds gespeichert.
 
 import os, numpy as np, pandas as pd
 from sklearn.preprocessing import StandardScaler
+import hdbscan
 
-try:
-    import hdbscan
-except:
-    raise SystemExit("Bitte hdbscan installieren: pip install hdbscan")
+os.makedirs("cache", exist_ok=True)
+out_csv = "cache/cluster_hdbscan.csv"
 
-hdb_file = "cache/cluster_hdbscan.rds"
+cust = r.cust.to_pandas()
+features = [
+    "recency_days","frequency","monetary","aov",
+    "basket_items_mean","basket_items_p95","category_diversity",
+    "hhi_rev","entropy_rev","returns_abs","returns_cnt",
+    "monetary_log","aov_log","frequency_log","returns_abs_log"
+]
+Xdf = cust[features].replace([np.inf,-np.inf], np.nan).dropna()
+X = StandardScaler().fit_transform(Xdf)
 
-if os.path.exists(hdb_file):
-    import rpy2.robjects as ro
-    hdb_res = ro.r['readRDS'](hdb_file)
-else:
-    cust = r.cust.to_pandas()
-    features = [
-        "recency_days","frequency","monetary","aov",
-        "basket_items_mean","basket_items_p95","category_diversity",
-        "returns_abs","returns_cnt"
-    ]
-    Xdf = cust[features].replace([np.inf,-np.inf], np.nan).dropna()
-    X = StandardScaler().fit_transform(Xdf)
+clusterer = hdbscan.HDBSCAN(min_cluster_size=30, min_samples=None,
+                            metric="euclidean", cluster_selection_method="eom")
+labels = clusterer.fit_predict(X)
 
-    clusterer = hdbscan.HDBSCAN(min_cluster_size=30, min_samples=None,
-                                cluster_selection_epsilon=0.0,
-                                metric="euclidean",
-                                cluster_selection_method="eom")
-    labels = clusterer.fit_predict(X)
-
-    hdb_res = cust.loc[Xdf.index, ["customer_id"]].copy()
-    hdb_res["cluster_hdbscan"] = labels
-
-    import rpy2.robjects as ro
-    ro.r['saveRDS'](ro.conversion.py2rpy(hdb_res), hdb_file)
+hdb_res = cust.loc[Xdf.index, ["customer_id"]].copy()
+hdb_res["cluster_hdbscan"] = labels
+hdb_res.to_csv(out_csv, index=False)
 
 hdb_res.head(10)
 ```
@@ -1832,60 +1835,60 @@ Die Qualität der Cluster wird mit Silhouette (K-Means), Davies–Bouldin (K-Mea
 Ergebnisse werden in cache/cluster_metrics.rds gespeichert.
 
 ```{python C.7-validierung}
+
 #| eval: true
 #| echo: true
 #| message: false
 #| warning: false
 #| dependson: ["C.7-kmeans","C.7-hdbscan"]
 
-import os, numpy as np, pandas as pd
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score, davies_bouldin_score
+library(readr)
+library(dplyr)
+library(reticulate)
 
-try:
-    import hdbscan
-    from hdbscan.validity import validity_index
-except:
-    raise SystemExit("Bitte hdbscan installieren: pip install hdbscan")
+metrics_file <- "cache/cluster_metrics.rds"
 
-metrics_file = "cache/cluster_metrics.rds"
+if (file.exists(metrics_file)) {
+  metrics <- readRDS(metrics_file)
+} else {
+  cust <- readRDS("cache/customer_features.rds")
+  features <- c(
+    "recency_days","frequency","monetary","aov",
+    "basket_items_mean","basket_items_p95","category_diversity",
+    "hhi_rev","entropy_rev","returns_abs","returns_cnt",
+    "monetary_log","aov_log","frequency_log","returns_abs_log"
+  )
+  Xdf <- cust[, features] |> 
+    mutate(across(everything(), ~ifelse(is.infinite(.), NA, .))) |>
+    tidyr::drop_na()
+  # Standardisieren in R für Silhouette/DB-Score (optional in R), hier weiter in Python:
+  np <- import("numpy", convert = FALSE)
+  skp <- import("sklearn.preprocessing", convert = TRUE)
+  skm <- import("sklearn.metrics", convert = TRUE)
+  X_scaled <- skp$StandardScaler()$fit_transform(r_to_py(as.matrix(Xdf)))
 
-if os.path.exists(metrics_file):
-    import rpy2.robjects as ro
-    metrics = ro.r['readRDS'](metrics_file)
-else:
-    cust = r.cust.to_pandas()
-    features = [
-        "recency_days","frequency","monetary","aov",
-        "basket_items_mean","basket_items_p95","category_diversity",
-        "returns_abs","returns_cnt"
-    ]
-    Xdf = cust[features].replace([np.inf,-np.inf], np.nan).dropna()
-    X = StandardScaler().fit_transform(Xdf)
+  km_res  <- read_csv("cache/cluster_kmeans.csv", show_col_types = FALSE)
+  hdb_res <- read_csv("cache/cluster_hdbscan.csv", show_col_types = FALSE)
 
-    # KMeans
-    km = KMeans(n_clusters=5, random_state=42, n_init=10)
-    lab_km = km.fit_predict(X)
-    sil = silhouette_score(X, lab_km) if len(set(lab_km))>1 else np.nan
-    db  = davies_bouldin_score(X, lab_km) if len(set(lab_km))>1 else np.nan
+  # KMeans-Metriken
+  lab_km <- km_res$cluster_kmeans[match(rownames(Xdf), as.character(km_res$customer_id))]
+  sil <- if (length(unique(lab_km)) > 1) skm$silhouette_score(X_scaled, lab_km) else NA_real_
+  db  <- if (length(unique(lab_km)) > 1) skm$davies_bouldin_score(X_scaled, lab_km) else NA_real_
 
-    # HDBSCAN
-    hdb = hdbscan.HDBSCAN(min_cluster_size=30, min_samples=None,
-                          metric="euclidean", cluster_selection_method="eom")
-    lab_h = hdb.fit_predict(X)
-    mask = lab_h >= 0
-    dbcv = validity_index(X[mask], lab_h[mask]) if mask.sum()>1 and len(set(lab_h[mask]))>1 else np.nan
+  # HDBSCAN DBCV
+  hdb <- import("hdbscan", convert = TRUE)
+  lab_h <- hdb_res$cluster_hdbscan[match(rownames(Xdf), as.character(hdb_res$customer_id))]
+  dbcv <- if (sum(lab_h >= 0) > 1 && length(unique(lab_h[lab_h >= 0])) > 1) {
+    hdb$validity$validity_index(X_scaled, lab_h)
+  } else NA_real_
 
-    metrics = pd.DataFrame([{
-        "silhouette_kmeans": sil,
-        "davies_bouldin_kmeans": db,
-        "dbcv_hdbscan": dbcv,
-        "n_customers": X.shape[0]
-    }])
-
-    import rpy2.robjects as ro
-    ro.r['saveRDS'](ro.conversion.py2rpy(metrics), metrics_file)
-
+  metrics <- tibble(
+    silhouette_kmeans = as.numeric(sil),
+    davies_bouldin_kmeans = as.numeric(db),
+    dbcv_hdbscan = as.numeric(dbcv),
+    n_customers = nrow(Xdf)
+  )
+  saveRDS(metrics, metrics_file, compress = "xz")
+}
 metrics
 ```
