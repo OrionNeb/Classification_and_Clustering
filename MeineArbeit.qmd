@@ -1760,21 +1760,26 @@ Die Ergebnisse werden als cluster_kmeans.rds gespeichert.
 #| warning: false
 #| dependson: ["C.7-feature-engineering"]
 
-import os, numpy as np, pandas as pd
+import os
+import pandas as pd
+import pyreadr
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 
 os.makedirs("cache", exist_ok=True)
 out_csv = "cache/cluster_kmeans.csv"
 
-cust = r.cust.to_pandas()
+# Data direkt aus der RDS-Datei laden
+cust = pyreadr.read_r("cache/customer_features.rds")[None]
+
 features = [
     "recency_days","frequency","monetary","aov",
     "basket_items_mean","basket_items_p95","category_diversity",
     "hhi_rev","entropy_rev","returns_abs","returns_cnt",
     "monetary_log","aov_log","frequency_log","returns_abs_log"
 ]
-Xdf = cust[features].replace([np.inf,-np.inf], np.nan).dropna()
+
+Xdf = cust[features].replace([float("inf"), float("-inf")], pd.NA).dropna()
 X = StandardScaler().fit_transform(Xdf)
 
 km = KMeans(n_clusters=5, random_state=42, n_init=25)
