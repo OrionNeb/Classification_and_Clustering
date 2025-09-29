@@ -98,6 +98,7 @@ if (!requireNamespace("gridExtra", quietly = TRUE)) install.packages("gridExtra"
 if (!requireNamespace("patchwork", quietly = TRUE)) install.packages("patchwork")
 if (!requireNamespace("mclust", quietly = TRUE)) install.packages("mclust")        
 if (!requireNamespace("clustertend", quietly = TRUE)) install.packages("clustertend")  
+if (!requireNamespace("fmsb", quietly = TRUE)) install.packages("fmsb")
 
 
 library(reticulate)
@@ -117,7 +118,9 @@ library(grid)
 library(gridExtra)
 library(patchwork)
 library(mclust)        
-library(clustertend)   
+library(clustertend)
+library(fmsb)
+
 
 ```
 
@@ -343,13 +346,13 @@ Für die Anfangswahl von *k* wird zunächst eine kleine Bandbreite getestet (z. 
 
 Dichtebasierte Ansätze identifizieren Cluster als Bereiche **hoher Punktdichte** und weisen dünn besetzte Regionen als **Rauschen** aus; klassisch erfolgt dies über ε und MinPts (DBSCAN). **HDBSCAN** erweitert dieses Prinzip hierarchisch, extrahiert stabile Cluster über ein Spektrum von Dichteschwellen und **erfordert keine feste Vorgabe von *k***. Dadurch lassen sich nicht-konvexe Formen, lokal variierende Dichten und Ausreißer natürlicher behandeln (@chakrabortyDataClassificationIncremental2022, S. 87–89, 96).  
 
-Die Qualitätsbewertung dichtebasierter Lösungen erfolgt mit **DBCV** (Density-Based Clustering Validation), das die „within- and between-cluster density connectedness“ misst und den Einfluss von Rauschen sachgerecht einbezieht (@moulaviDensityBasedClustering2014).
+Die Qualitätsbewertung dichtebasierter Lösungen erfolgt mit **DBCV** (Density-Based Clustering Validation), das die „within- and between-cluster density connectedness“ misst und den Einfluss von Rauschen sachgerecht einbezieht (@moulaviDensityBasedClusteringValidation2014, S. 839f).
 
 \myheading{Warum zwei Verfahren?}
 
 - **Modellannahmen**: K-Means adressiert kompakte Cluster und liefert gut lesbare Zentroidprofile (nützlich für Personas/Profiling). HDBSCAN erkennt **arbiträre Formen** und separiert **Rauschen**, was bei E-Commerce-Daten mit Ausreißern/Saisonalitäten vorteilhaft ist (@chakrabortyDataClassificationIncremental2022).  
 - **Praxisnutzen**: Der Methoden-Kontrast reduziert das Risiko methodischer Scheinsicherheit und erhöht die Wahrscheinlichkeit, robuste, **geschäftlich interpretierbare** Segmente zu finden.  
-- **Evaluation**: Je Verfahren passende Indizes: **Silhouette** und **Davies–Bouldin** für K-Means sowie **DBCV** für HDBSCAN; Stabilität via Bootstrapping/ARI, Clustertendenz vorab via **Hopkins** (vgl. \@sec-validierung und \@sec-evaluation; @laiSilhouetteCoefficientbasedWeighting2025; @moulaviDensityBasedClustering2014).
+- **Evaluation**: Je Verfahren passende Indizes: **Silhouette** und **Davies–Bouldin** für K-Means sowie **DBCV** für HDBSCAN; Stabilität via Bootstrapping/ARI, Clustertendenz vorab via **Hopkins** (vgl. \@sec-validierung und \@sec-evaluation; @laiSilhouetteCoefficientbasedWeighting2025; @moulaviDensityBasedClusteringValidation2014).
 
 \myheading{Einbettung in CRISP-DM}
 
@@ -1923,15 +1926,15 @@ metrics
 :::
 \markboth{Anhang D: Ergebnisse und Visualisierungen}{}
 
-Dieser Anhang ergänzt die im Haupttext dargestellten Ergebnisse um detaillierte Tabellen, Visualisierungen und narrative Beschreibungen der identifizierten Segmente. Während Anhang C die technische Umsetzung der Aufbereitung und Modellierung dokumentiert, liegt der Schwerpunkt hier auf der Darstellung, Interpretation und Kommunikation der Ergebnisse.  
+Dieser Anhang ergänzt die im Haupttext dargestellten Ergebnisse um detaillierte Tabellen, Visualisierungen und narrative Beschreibungen der identifizierten Segmente. Während [Anhang C](#sec-anhangC) die technische Umsetzung der Aufbereitung und Modellierung dokumentiert, liegt der Schwerpunkt hier auf der Darstellung, Interpretation und Kommunikation der Ergebnisse.  
 
 \medskip
 
-**Inhalt dieses Anhangs** \smallskip  
+\myheading{Inhalt dieses Anhangs} \smallskip  
 
-1. [Clusterprofile (Kennzahlen je Segment)](#sec-anhangD.1)  
-2. [Visualisierungen der Clusterlösungen](#sec-anhangD.2)  
-3. [Personas der Kundensegmente](#sec-anhangD.3)  
+1. [Clusterprofile (Kennzahlen je Segment) (D.1)](#sec-anhangD.1)
+2. [Visualisierungen der Clusterlösungen (D.2)](#sec-anhangD.2)
+3. [Personas der Kundensegmente (D.3)](#sec-anhangD.3)
 
 \clearpage
 
@@ -1952,6 +1955,7 @@ Die Clusterlösungen aus [C.7](#sec-anhangC.7) wurden aggregiert, um zentrale Ke
 library(dplyr)
 library(readr)
 
+# Basisdaten laden
 cust <- read.csv("cache/customer_features.csv")
 km   <- read_csv("cache/cluster_kmeans.csv", show_col_types = FALSE)
 hdb  <- read_csv("cache/cluster_hdbscan.csv", show_col_types = FALSE)
@@ -1960,13 +1964,16 @@ hdb  <- read_csv("cache/cluster_hdbscan.csv", show_col_types = FALSE)
 cust_km  <- cust %>% left_join(km,  by="customer_id")
 cust_hdb <- cust %>% left_join(hdb, by="customer_id")
 
+# Variablen für Profilbildung
+features <- c("recency_days","frequency","monetary","aov",
+              "basket_items_mean","basket_items_p95",
+              "category_diversity","hhi_rev","entropy_rev",
+              "returns_abs","returns_cnt")
+
 # Profile berechnen: K-Means
 prof_km <- cust_km %>%
   group_by(cluster_kmeans) %>%
-  summarise(across(c(recency_days, frequency, monetary, aov,
-                     basket_items_mean, basket_items_p95,
-                     category_diversity, hhi_rev, entropy_rev,
-                     returns_abs, returns_cnt),
+  summarise(across(all_of(features),
                    list(mean=mean, median=median), .names="{.col}_{.fn}"),
             n_customers=n())
 
@@ -1974,26 +1981,31 @@ prof_km <- cust_km %>%
 prof_hdb <- cust_hdb %>%
   filter(cluster_hdbscan >= 0) %>%
   group_by(cluster_hdbscan) %>%
-  summarise(across(c(recency_days, frequency, monetary, aov,
-                     basket_items_mean, basket_items_p95,
-                     category_diversity, hhi_rev, entropy_rev,
-                     returns_abs, returns_cnt),
+  summarise(across(all_of(features),
                    list(mean=mean, median=median), .names="{.col}_{.fn}"),
             n_customers=n())
 
+# speichern
 saveRDS(list(kmeans=prof_km, hdbscan=prof_hdb), "cache/cluster_profiles.rds", compress="xz")
-list(kmeans=prof_km, hdbscan=prof_hdb)
+
+list(KMeans=prof_km, HDBSCAN=prof_hdb)
 ```
 
 \noindent Die Tabellen zeigen, welche Unterschiede sich zwischen den Segmenten ergeben – z. B. besonders hohe Umsätze (Monetary), kurze Kaufintervalle (Recency) oder hohe Sortimentsdiversität.
 
 ::: {#sec-anhangD.2}
-D.2: Visualisierungen der Clusterlösungen {.unnumbered}
+## D.2: Visualisierungen der Clusterlösungen {.unnumbered}
 :::
 
-Zur Veranschaulichung der Cluster wurden Boxplots und Radar-Charts erstellt. Sie ermöglichen einen intuitiven Vergleich der Segmente entlang zentraler Dimensionen.
+Zur Veranschaulichung der Cluster wurden zwei komplementäre Visualisierungsformen gewählt: \smallskip
 
-```{r D.2-visualisierungen_der_clusterloesungen}
+(1) Boxplots, die die Streuung der einzelnen Variablen je Cluster in absoluten Werten zeigen,  
+(2) Radar-Charts, die die Clusterprofile auf eine vergleichbare 0–1 Skala normieren.  
+
+So können sowohl absolute Unterschiede als auch relative Muster erkannt werden.  
+
+
+```{r D.2-boxplots, fig.width=12, fig.height=6}
 
 #| eval: true
 #| echo: true
@@ -2002,24 +2014,63 @@ Zur Veranschaulichung der Cluster wurden Boxplots und Radar-Charts erstellt. Sie
 #| dependson: ["D.1-clusterprofile"]
 
 library(ggplot2)
-library(tidyr)
+library(dplyr)
+library(readr)
 
-cust_km <- cust %>% left_join(km, by="customer_id")
+# Cluster-Ergebnisse laden
+km_res <- read_csv("cache/cluster_kmeans.csv", show_col_types = FALSE)
+cust   <- read.csv("cache/customer_features.csv")
 
-# Boxplots für ausgewählte Variablen
-cust_km %>%
-  pivot_longer(cols=c(monetary, recency_days, frequency, basket_items_mean, category_diversity),
-               names_to="variable", values_to="value") %>%
-  ggplot(aes(x=factor(cluster_kmeans), y=value, fill=factor(cluster_kmeans))) +
-  geom_boxplot(outlier.alpha=0.2) +
-  facet_wrap(~variable, scales="free_y") +
-  labs(title="K-Means Clusterprofile", x="Cluster", y="Wert", fill="Cluster") +
-  theme_minimal()
+df <- cust %>%
+  inner_join(km_res, by = "customer_id") %>%
+  select(cluster_kmeans, recency_days, frequency, monetary,
+         basket_items_mean, category_diversity) %>%
+  tidyr::pivot_longer(-cluster_kmeans, names_to = "Merkmal", values_to = "Wert")
+
+# Labels schöner formatieren
+df$Merkmal <- recode(df$Merkmal,
+  "basket_items_mean"  = "Ø Warenkorbgröße",
+  "category_diversity" = "Sortiments-\nDiversität",
+  "frequency"          = "Kauffrequenz",
+  "monetary"           = "Monetary (Umsatz)",
+  "recency_days"       = "Recency (Tage)"
+)
+
+# Legenden-Labels (inkl. Personas)
+cluster_labels <- c(
+  "0 – Loyale Stammkunden",
+  "1 – Premium-Gelegenheitskäufer",
+  "2 – Abwanderungsgefährdet",
+  "3 – Schnäppchenjäger",
+  "4 – Unregelmäßige Käufer"
+)
+
+ggplot(df, aes(x=factor(cluster_kmeans), y=Wert, fill=factor(cluster_kmeans))) +
+  geom_boxplot(outlier.size=0.8, alpha=0.7) +
+  facet_wrap(~Merkmal, scales="free", labeller = label_wrap_gen(width = 15)) +
+  scale_fill_brewer(palette="Set2", name="Cluster", labels=cluster_labels) +
+  guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +   # << Legende zweizeilig
+  theme_minimal(base_size=13) +
+  theme(
+    legend.position="bottom",
+    legend.title = element_text(face="bold"),
+    legend.text = element_text(size=10),
+    strip.text = element_text(size=12, face="bold", lineheight = 1.1),
+    axis.text.x = element_text(size=10),
+    axis.title.y = element_text(size=11)
+  ) +
+  labs(
+    title="K-Means Clusterprofile (Boxplots)",
+    x="Cluster", y="Wert"
+  )
 ```
 
-\noindent Radar-Charts können zusätzlich erstellt werden, um die typischen Muster pro Cluster auf einen Blick zu erfassen. (Optional, falls du das noch aufnehmen möchtest.)
+Radar-Charts können zusätzlich erstellt werden, um die typischen Muster pro Cluster auf einen Blick zu erfassen. (Optional, falls du das noch aufnehmen möchtest.)
+
+Die Radar-Darstellung zeigt die Clusterprofile normiert (0–1), damit die Variablen trotz unterschiedlicher Größenordnungen vergleichbar sind. Um Überlagerungen zu vermeiden, wird jedes Cluster in einem eigenen Radar dargestellt.
 
 ```{r D.2-radar-chart}
+
 
 #| eval: true
 #| echo: true
@@ -2028,7 +2079,8 @@ cust_km %>%
 #| dependson: ["D.1-clusterprofile"]
 
 library(fmsb)
-library(dplyr)
+library(scales)
+library(RColorBrewer)
 
 # Clusterprofile laden
 profiles <- readRDS("cache/cluster_profiles.rds")$kmeans
@@ -2042,53 +2094,105 @@ df <- profiles %>%
   rename_with(~sub("_mean","",.), all_of(vars)) %>%
   as.data.frame()
 
-# Skalen für fmsb: oberste + unterste Zeile = Max/Min
-radar_df <- rbind(
-  apply(df[,-1], 2, max, na.rm=TRUE),
-  apply(df[,-1], 2, min, na.rm=TRUE),
-  df[,-1]
+# Normalisieren (0–1)
+df_norm <- df
+df_norm[,-1] <- lapply(df[,-1], function(x) rescale(x, to=c(0,1)))
+
+# Achsenlabels schöner
+colnames(df_norm)[-1] <- c("Recency (Tage)","Kauffrequenz","Monetary (norm.)",
+                           "Ø Warenkorbgröße","Sortiments-Diversität")
+
+# Farben (Set2, wie Boxplots)
+cluster_colors <- brewer.pal(5,"Set2")
+names(cluster_colors) <- as.character(0:4)
+
+# Persona-Namen für Legende
+persona_labels <- c(
+  "0" = "Cluster 0 – Loyaler Stammkunde",
+  "1" = "Cluster 1 – Premium-Gelegenheitskäufer",
+  "2" = "Cluster 2 – Abwanderungsgefährdet",
+  "3" = "Cluster 3 – Schnäppchenjäger",
+  "4" = "Cluster 4 – Unregelmäßige Käufer"
 )
-rownames(radar_df) <- c("max","min", paste0("Cluster ", df$cluster_kmeans))
 
-# Farben
-colors_border <- c("red","blue","green","orange","purple")
-colors_in <- adjustcolor(colors_border, alpha.f=0.3)
+# Layout 2x3 (5 Plots + 1 Feld frei)
+par(mfrow=c(2,3), mar=c(2,2,3,2))
+for (i in seq_len(nrow(df_norm))) {
+  radar_df <- rbind(
+    rep(1, ncol(df_norm)-1),
+    rep(0, ncol(df_norm)-1),
+    df_norm[i,-1]
+  )
+  rownames(radar_df) <- c("max","min", paste0("Cluster ", df_norm$cluster_kmeans[i]))
+  
+  radarchart(radar_df,
+             axistype=1,
+             pcol=cluster_colors[as.character(df_norm$cluster_kmeans[i])],
+             pfcol=adjustcolor(cluster_colors[as.character(df_norm$cluster_kmeans[i])], alpha.f=0.3),
+             plwd=2,
+             plty=1,
+             cglcol="grey",
+             cglty=1,
+             axislabcol="grey20",
+             caxislabels=seq(0,1,0.25),
+             cglwd=0.8,
+             vlcex=0.9,
+             title=paste("Cluster", df_norm$cluster_kmeans[i]))  # nur Cluster-ID
+}
 
-radarchart(radar_df,
-           axistype=1,
-           pcol=colors_border,
-           pfcol=colors_in,
-           plwd=2,
-           plty=1,
-           cglcol="grey",
-           cglty=1,
-           axislabcol="grey20",
-           caxislabels=seq(0, max(radar_df), length.out=5),
-           cglwd=0.8,
-           vlcex=0.9,
-           title="Radar-Chart der K-Means-Clusterprofile")
-
-legend("topright", legend=rownames(radar_df)[-c(1,2)],
-       col=colors_border, lty=1, lwd=2, bty="n", cex=0.8)
+# Gemeinsame Legende unten (zweizeilig, wie Boxplots)
+par(mfrow=c(1,1))
+plot.new()
+legend("center",
+       legend=persona_labels,
+       col=cluster_colors,
+       lty=1, lwd=2, bty="n",
+       ncol=2, cex=0.9)
 
 ```
 
 ::: {#sec-anhangD.3}
-D.3: Personas der Kundensegmente {.unnumbered}
+## D.3: Personas der Kundensegmente {.unnumbered}
 :::
 
-Die Clusterprofile wurden in narrative Personas übersetzt. Personas helfen, abstrakte Kennzahlen in greifbare Beschreibungen von Kundentypen zu überführen.
+Die Clusterprofile wurden in narrative Personas übersetzt. Personas helfen, abstrakte Kennzahlen in greifbare Beschreibungen von Kundentypen zu überführen.  
+Zur besseren Wiedererkennbarkeit werden die Cluster in den gleichen Farben wie in den Visualisierungen (vgl. [D.2](#sec-anhangD.2)) dargestellt.
 
-  * Cluster 1 – Loyaler Stammkunde
-    Häufige Einkäufe, mittlerer Warenkorbwert, hohe Bindung. Geeignet für Treueprogramme.
-  * Cluster 2 – Premium-Gelegenheitskäufer
-    Wenige Einkäufe, hoher Umsatz, Premium-orientiert. Ansprache über exklusive Angebote.
-  * Cluster 3 – Abwanderungsgefährdet
-    Niedrige Frequenz und Umsätze, lange Recency. Reaktivierungskampagnen notwendig.
-  * Cluster 4 – Schnäppchenjäger
-    Sehr hohe Frequenz, kleine Warenkörbe. Zielgruppe für Rabattaktionen und Promotions.
-  * Cluster 5 – Unregelmäßige Käufer (HDBSCAN, teils Rauschen)
-    Saisonale Muster, schwer planbares Verhalten. Geeignet für Event-bezogene Kampagnen.
+```{r D.3-personas}
+
+#| results="asis"
+#| echo=FALSE
+
+library(dplyr)
+library(gt)
+
+personas <- tibble::tibble(
+  Cluster = c("Cluster 1","Cluster 2","Cluster 3","Cluster 4","Cluster 5"),
+  Persona = c(
+    "Loyaler Stammkunde: Häufige Einkäufe, mittlerer Warenkorbwert, hohe Bindung. Geeignet für Treueprogramme.",
+    "Premium-Gelegenheitskäufer: Wenige Einkäufe, hoher Umsatz, Premium-orientiert. Ansprache über exklusive Angebote.",
+    "Abwanderungsgefährdet: Niedrige Frequenz und Umsätze, lange Recency. Reaktivierungskampagnen notwendig.",
+    "Schnäppchenjäger: Sehr hohe Frequenz, kleine Warenkörbe. Zielgruppe für Rabattaktionen und Promotions.",
+    "Unregelmäßige Käufer (HDBSCAN, teils Rauschen): Saisonale Muster, schwer planbares Verhalten. Geeignet für Event-bezogene Kampagnen."
+  )
+)
+
+if (knitr::is_latex_output()) {
+  # Fallback für PDF: einfache Tabelle ohne Farben
+  knitr::kable(personas, format="latex", booktabs=TRUE)
+} else {
+  # Farben nur in HTML
+  cluster_colors <- c("Cluster 1"="#FF0000","Cluster 2"="#0000FF",
+                      "Cluster 3"="#008000","Cluster 4"="#FFA500","Cluster 5"="#800080")
+  personas %>%
+    gt() %>%
+    data_color(
+      columns = vars(Cluster),
+      colors = scales::col_factor(palette = unname(cluster_colors),
+                                  domain = names(cluster_colors))
+    )
+}
+```
 
 \medskip
 
