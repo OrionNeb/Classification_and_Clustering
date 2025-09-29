@@ -61,7 +61,12 @@ execute:
   code-overflow: wrap  # Lange Zeilen umbrechen
 ---
 
-```{r, label=r-setup, eval=TRUE, message=FALSE, warning=FALSE, include=FALSE}
+```{r r-setup}
+
+#| eval=TRUE
+#| message=FALSE
+#| warning=FALSE
+#| include=FALSE
 
 # CRAN-Mirror setzen (WICHTIG: Vor allen anderen Operationen)
 options(repos = c(CRAN = "https://cran.rstudio.com/"))
@@ -91,6 +96,8 @@ if (!requireNamespace("gt", quietly = TRUE)) install.packages("gt")
 if (!requireNamespace("grid", quietly = TRUE)) install.packages("grid")
 if (!requireNamespace("gridExtra", quietly = TRUE)) install.packages("gridExtra")
 if (!requireNamespace("patchwork", quietly = TRUE)) install.packages("patchwork")
+if (!requireNamespace("mclust", quietly = TRUE)) install.packages("mclust")        
+if (!requireNamespace("clustertend", quietly = TRUE)) install.packages("clustertend")  
 
 
 library(reticulate)
@@ -109,27 +116,54 @@ library(gt)
 library(grid)        
 library(gridExtra)
 library(patchwork)
+library(mclust)        
+library(clustertend)   
 
 ```
 
-```{python, label=python-setup, include=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+```{python python-setup}
+
+#| eval=TRUE
+#| message=FALSE
+#| warning=FALSE
+#| include=FALSE
+
 # Erforderliche Bibliotheken installieren (falls nicht vorhanden)
 import subprocess
 import sys
 
-def install_and_import(package):
+def install_and_import(package_name, import_name=None):
+    """
+    Installiert ein Paket und importiert es.
+    package_name: Name für pip install
+    import_name: Name für import (falls unterschiedlich)
+    """
+    if import_name is None:
+        import_name = package_name
+    
     try:
-        __import__(package)
+        __import__(import_name)
     except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        print(f"Installing {package_name}...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package_name])
     finally:
-        globals()[package] = __import__(package)
+        globals()[import_name] = __import__(import_name)
 
-# Äquivalente Bibliotheken in Python installieren und importieren
-libraries = ["pandas", "numpy", "matplotlib", "seaborn", "scipy", "statsmodels", "pulp"]
+# Bibliotheken mit korrekten Namen installieren
+packages = [
+    ("pandas", "pandas"),
+    ("numpy", "numpy"), 
+    ("matplotlib", "matplotlib"),
+    ("seaborn", "seaborn"),
+    ("scipy", "scipy"),
+    ("statsmodels", "statsmodels"),
+    ("pulp", "pulp"),
+    ("scikit-learn", "sklearn"),  # Hier ist der Unterschied!
+    ("hdbscan", "hdbscan")
+]
 
-for lib in libraries:
-    install_and_import(lib)
+for pkg_name, import_name in packages:
+    install_and_import(pkg_name, import_name)
 
 # Bibliotheken laden
 import pandas as pd
@@ -140,7 +174,23 @@ from scipy import stats
 from statsmodels.tsa.seasonal import STL
 from pulp import LpMaximize, LpProblem, LpVariable, value
 
+# Scikit-learn Imports hinzufügen
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from sklearn.utils.validation import check_array
+
+# HDBSCAN Import mit Fehlerbehandlung
+try:
+    import hdbscan
+except ImportError:
+    print("Installing hdbscan...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "hdbscan"])
+    import hdbscan
+
+print("Alle Bibliotheken erfolgreich geladen!")
 ```
+
 
 <!-- ================= 1. Einleitung ================= -->
 
@@ -218,7 +268,7 @@ Die Kombination beider Perspektiven erlaubt es, sowohl verhaltensnahe Muster (Re
 
 # Methodik (CRISP-DM: Modeling - Theoretische Grundlagen)
 
-## Feature Engineering & Preprocessing (RFM, Warenkorbgrößen, Sortimentsmerkmale – konzeptionell) {#sec-feature-engineering}
+## Feature Engineering und Preprocessing (RFM, Warenkorbgrößen, Sortimentsmerkmale – konzeptionell) {#sec-feature-engineering}
 
 Damit Segmentstrukturen in den Daten sichtbar werden, müssen aus den Rohdaten aussagekräftige Merkmale abgeleitet werden. Dieser Schritt wird als Feature Engineering bezeichnet [@tsiptsisDataMiningTechniques2010, S. 337].
 
@@ -241,7 +291,14 @@ Der Vorteil dieser Verdichtung liegt in der besseren Vergleichbarkeit: Statt ein
 Die Gewichtung der Parameter ist flexibel gestaltbar. Unternehmen können etwa den zeitlichen Abstand (Recency) stärker gewichten, wenn Reaktivierungskampagnen im Vordergrund stehen, oder die Häufigkeit (Frequency), wenn Loyalität im Fokus liegt. Durch Variation der Gewichte $w_R$, $w_F$ und $w_M$ wird unmittelbar sichtbar, wie sich die Kundenklassifikation verschiebt [@tsiptsisDataMiningTechniques2010, S. 338].
 
 Eine anschauliche Visualisierung der RFM-Zellen und ihrer logischen Struktur findet sich in [Anhang B.3: Retail-Segmentierung mit RFM](#sec-anhangB.3).  
+<!--=== Hinzugefügt
 
+Es lassen sich eindimensionale und mehrdimensionale RFM-Ansätze unterscheiden. Bei der eindimensionalen RFM-Segmentierung wird nur eine der drei Dimensionen (Recency, Frequency oder Monetary) zur Einteilung von Kunden herangezogen. Kunden werden dabei typischerweise in Quantile oder Klassen gruppiert, sodass beispielsweise die 20 % der Kunden mit der höchsten Kaufhäufigkeit in die oberste Kategorie fallen (@tsiptsisDataMiningTechniques2010, S. 333–336). Dieses Vorgehen ist leicht verständlich und ermöglicht eine schnelle Sortierung nach einzelnen Aspekten des Kaufverhaltens, bildet jedoch die Vielfalt der Kundenbeziehungen nur eingeschränkt ab. Eine detaillierte Übersicht findet sich inin [Anhang B.1: Eindimensionale RFM-Segmentierung](#sec-anhangB.1).  
+
+Demgegenüber berücksichtigen mehrdimensionale Ansätze mehrere Merkmale gleichzeitig. Besonders etabliert ist die RFM-Analyse, die Recency, Frequency und Monetary Value kombiniert. @tsiptsisDataMiningTechniques2010, S. 337 schlagen vor, „to use the respective components as inputs in a clustering model and let the algorithm reveal the underlying natural groupings of customers“. Auf diese Weise entsteht ein mehrdimensionaler Merkmalsraum, in dem differenziertere Segmente sichtbar werden. Moderne Anwendungen erweitern RFM zudem um Variablen wie Warenkorbgrößen oder Sortimentspräferenzen. Eine detaillierte Übersicht zur RFM-Segmentierung findet sich in [Anhang B.2: Mehrdimensionale RFM-Segmentierung](#sec-anhangB.2).
+
+
+===-->
 Ergänzend zur klassischen RFM-Analyse werden in der Literatur weitere behaviorale Variablen vorgeschlagen, um das Kundenverhalten differenzierter zu erfassen. Besonders relevant sind *Warenkorbgrößen* und *Sortimentsmerkmale* [@tsiptsisDataMiningTechniques2010, S. 334].  
 
 Warenkorbgrößen (*Basket Size*) beschreiben, wie umfangreich einzelne Bestellungen typischerweise ausfallen. Sie können entweder über die durchschnittliche Anzahl enthaltener Artikel oder über den durchschnittlichen Bestellwert erfasst werden. Formal lässt sich die mittlere Warenkorbgröße als Quotient aus der Gesamtzahl der Artikel eines Kunden und der Anzahl seiner Bestellungen ausdrücken:  
@@ -265,6 +322,16 @@ Eine ausführlichere und beispielhafte Darstellung dieser Konzepte erfolgt in [A
 
 ## Clustering-Verfahren (K-Means, HDBSCAN - zentrale Eigenschaften) {#sec-clustering-verfahren}
 
+## Clustertendenz und Modelle Hopkins, K-Means, HDBSCAN {#sec-clustertendenz}
+
+Bevor konkrete Clusterverfahren eingesetzt werden, wird mit der Hopkins-Statistik geprüft, ob die Daten überhaupt eine erkennbare Tendenz zur Bildung von Clustern aufweisen. Werte nahe 0,5 deuten auf eine gleichmäßige Streuung ohne klare Gruppen hin, während Werte oberhalb von 0,75 auf deutliche Clustermuster schließen lassen. Vorgehen, Stichprobenumfang, Reproduzierbarkeit und Ergebniszusammenfassung sind in [Anhang C.6: Clustertendenz und Testverfahren](#sec-anhangC6) dokumentiert.
+
+Aufbauend auf dieser Prüfung werden zwei komplementäre Verfahren eingesetzt, die unterschiedliche Strukturannahmen abdecken. K-Means dient als zentroidbasiertes Referenzverfahren und erzeugt gut interpretierbare Zentroidprofile, ist aber auf annähernd kugelförmige Strukturen ausgerichtet. Exemplarisch wird zunächst ein Startwert von k = 5 verwendet, um die Funktionsweise zu demonstrieren. Eine inhaltliche Entscheidung über die tatsächliche Clusterzahl erfolgt hier nicht, sondern systematisch in [Kapitel 4: Evaluation und Ergebnisse](#sec-evaluation) anhand geeigneter Gütemaße (u. a. Silhouette, Davies-Bouldin) und Stabilitätsprüfungen. Die konkreten Umsetzungsschritte stehen in [Anhang C.7: Modellierungsschritte K-Means und HDBSCAN](#sec-anhangC7).
+
+Als dichtebasiertes Gegenstück wird HDBSCAN eingesetzt. Das Verfahren erfordert keine feste Clusterzahl, kann lokal unterschiedliche Dichten abbilden und weist dünn besetzte Bereiche als Rauschen aus. Dadurch werden neben größeren Segmenten auch Nischenmuster identifiziert. Parameterwahl und Export der Ergebnisse sind ebenfalls in [Anhang C.7](#sec-anhangC7) dokumentiert; die Qualität der resultierenden Lösungen wird in [Kapitel 4](#sec-evaluation) anhand dichtegeeigneter Indizes und Stabilitätsmaßen bewertet.
+
+Damit ist die methodische Basis gelegt. Die Hopkins-Statistik begründet die Durchführung einer Clusteranalyse, und die Kombination aus K-Means und HDBSCAN stellt sicher, dass sowohl zentroidbasierte als auch dichtebasierte Strukturen erfasst werden.
+
 ## Validierung (Hopkins, Silhouette, DBCV) als Qualitätskontrolle {#sec-validierung}
 
 Damit die mit Clustering identifizierten Muster belastbar sind, müssen ihre Ergebnisse überprüft werden. Dazu dienen Validierungsmaße, die im Folgenden vorgestellt werden.  
@@ -272,10 +339,6 @@ Damit die mit Clustering identifizierten Muster belastbar sind, müssen ihre Erg
 Die Hopkins-Statistik prüft, ob ein Datensatz überhaupt eine Clustertendenz enthält. @acitoPredictiveAnalyticsKNIME2023, S. 271 beschreiben sie als Maß, „to assess the clustering tendency of a data set by measuring the probability that a uniform data distribution generates a given data set“. Werte über 0,75 deuten auf eine starke Clustertendenz hin, Werte nahe 0,5 auf Zufälligkeit. Bei hochdimensionalen E-Commerce-Daten ist die Aussagekraft jedoch eingeschränkt, weshalb Hopkins in dieser Arbeit nur ergänzend berücksichtigt wird.  
 
 Der Silhouette-Koeffizient bewertet die Kohäsion innerhalb von Clustern und die Separation zwischen Clustern. Er kombiniert also zwei Perspektiven: interne Homogenität und externe Abgrenzung. @tsiptsisDataMiningTechniques2010, S. 209 nennen die Silhouette als ein zentrales Kriterium der technischen Evaluation. @laiSilhouetteCoefficientbasedWeighting2025, S. 3063 ergänzen, dass sie ein objektives Maß sei, weil sie „both the cohesion within clusters and the separation between clusters“ berücksichtigt.  
-
-Es lassen sich eindimensionale und mehrdimensionale RFM-Ansätze unterscheiden. Bei der eindimensionalen RFM-Segmentierung wird nur eine der drei Dimensionen (Recency, Frequency oder Monetary) zur Einteilung von Kunden herangezogen. Kunden werden dabei typischerweise in Quantile oder Klassen gruppiert, sodass beispielsweise die 20 % der Kunden mit der höchsten Kaufhäufigkeit in die oberste Kategorie fallen (@tsiptsisDataMiningTechniques2010, S. 333–336). Dieses Vorgehen ist leicht verständlich und ermöglicht eine schnelle Sortierung nach einzelnen Aspekten des Kaufverhaltens, bildet jedoch die Vielfalt der Kundenbeziehungen nur eingeschränkt ab. Eine detaillierte Übersicht findet sich inin [Anhang B.1: Eindimensionale RFM-Segmentierung](#sec-anhangB.1).  
-
-Demgegenüber berücksichtigen mehrdimensionale Ansätze mehrere Merkmale gleichzeitig. Besonders etabliert ist die RFM-Analyse, die Recency, Frequency und Monetary Value kombiniert. @tsiptsisDataMiningTechniques2010, S. 337 schlagen vor, „to use the respective components as inputs in a clustering model and let the algorithm reveal the underlying natural groupings of customers“. Auf diese Weise entsteht ein mehrdimensionaler Merkmalsraum, in dem differenziertere Segmente sichtbar werden. Moderne Anwendungen erweitern RFM zudem um Variablen wie Warenkorbgrößen oder Sortimentspräferenzen. Eine detaillierte Übersicht zur RFM-Segmentierung findet sich in [Anhang B.2: Mehrdimensionale RFM-Segmentierung](#sec-anhangB.2).
 
 Für dichtebasierte Verfahren wie HDBSCAN ist der DBCV-Index geeignet. @moulaviDensityBasedClusteringValidation2014, S. 839 erklären, dass DBCV die „within and between-cluster density connectedness“ misst, während Rauschen explizit berücksichtigt wird. Der Vorteil liegt darin, dass dieses Maß auch für arbiträre Clusterformen robust anwendbar ist (@moulaviDensityBasedClusteringValidation2014, S. 845).  
 
@@ -973,277 +1036,1012 @@ Kunde C verteilt seine Ausgaben gleichmäßig über verschiedene Kategorien, was
 \clearpage
 
 ::: {#sec-anhangC}
-# Anhang C: Data Preparation und Zusatzanalysen {.unnumbered}
+# Anhang C: Datenaufbereitung und Voranalysen {.unnumbered}
 :::
-\markboth{Anhang C: Data Preparation}{}
+\markboth{Anhang C: Datenaufbereitung und Voranalysen}{}
+
+Dieser Anhang dokumentiert die technischen Schritte, die den Haupttext flankieren. Die Abschnitte C.1 bis C.5 stützen die in Abschnitt 3.2 beschriebenen Datensätze sowie die praktische Aufbereitung in Abschnitt 5.1. Abschnitt C.6 liefert die Vorprüfung der Clustertendenz und bildet damit die Brücke zwischen Abschnitt 4.3 Validierung theoretisch und Abschnitt 5.2 Clustering Ergebnisse. Abschnitt C.7 enthält die Implementierung der in Abschnitt 4.2 beschriebenen Verfahren und erzeugt die in Abschnitt 5.2 ausgewerteten Clusterzuordnungen. Die inhaltliche Deutung der Segmente erfolgt in Abschnitt 5.3.
+
+\medskip
+
+\noindent Der Anhang ist wie folgt gegliedert: \smallskip
+
+  1. [Variablenbeschreibung und Quellen (C.1)](#sec-anhangC1)
+  2. [Abbildung auf ein einheitliches Ereignisschema (C.2)](#sec-anhangC2)
+  3. [Bereinigungsschritte und Qualitätsregeln (C.3)](#sec-anhangC3)
+  4. [Normalisierung der Zeitstempel und Kalendermerkmale (C.4)](#sec-anhangC4)
+  5. [Zusammenfassung des bereinigten Bestands und Plausibilisierung (C.5)](#sec-anhangC5)
+  6. [Clustertendenz mit der Hopkins-Statistik als Vorprüfung](#sec-anhangC.6)
+  7. [Modellierungsschritte in Python für K-Means und HDBSCAN](#sec-anhangC.7)
+  
+\medskip
+
+In den Abschnitten C.1–C.5 wird mit R gearbeitet, um die Daten zu laden, bereinigen und in ein konsistentes Schema zu überführen. Ab C.6 kommen Python und spezialisierte Bibliotheken für Clustertendenz, Modellierung und Evaluation zum Einsatz. Diese Aufgabenteilung folgt der Praxis vieler Forschungsarbeiten: R für transparente Datenaufbereitung, Python für Machine Learning.
 
 ::: {#sec-anhangC.1}
-## C.1: Bereinigung (fehlende Werte, Duplikate, Rückgaben) {.unnumbered}
+## C.1 Variablenbeschreibung und Quellen {.unnumbered}
 :::
 
-Zur Sicherstellung der Datenqualität wurden folgende Schritte durchgeführt:  
+```{r C.1-Variablenbeschreibung_und_Quellen}
 
-- Übersicht der fehlenden Werte vor der Bereinigung
-- Entfernen von Duplikaten (`distinct()`)
-- Ausschluss von Beobachtungen ohne Kunden-ID
-- Entfernung von Stornierungen und negativen Mengen
-- Vereinheitlichung der Zeitstempel
+#| eval=TRUE
+#| echo=TRUE
+#| include=TRUE
+#| results=TRUE
+#| message=FALSE
+#| warning=FALSE
 
-C.1: Bereinigung (fehlende Werte, Duplikate, Rückgaben)
-
-```{r plot-creation}
-#| eval: true
-#| echo: true
-#| results: true
-#| warning: false
-#| message: false
 
 # Pakete laden
+library(readr)
 library(dplyr)
-library(ggplot2)
-library(patchwork)
-library(corrplot)
-library(tidyr)
-library(knitr)
-library(gt)
+library(here)
 
-# Verzeichnis erstellen (falls nicht vorhanden)
-if (!dir.exists("img/Abbildungen")) {
-  dir.create("img/Abbildungen", recursive = TRUE)
-}
+# Versionen dokumentieren
+pkgs <- c("readr","dplyr","here")
+vers <- sapply(pkgs, function(p) as.character(utils::packageVersion(p)))
+attached <- pkgs %in% sub("^package:", "", search())
+data.frame(package = pkgs, version = vers, attached = attached)
 
-# Datensatz laden und vorbereiten
-retail <- read.csv("data/OR2/online_retail_II.csv")
+# Pfade bauen
+p_events <- here("data","RR","events.csv")
+p_item1  <- here("data","RR","item_properties_part1.csv")
+p_item2  <- here("data","RR","item_properties_part2.csv")
+p_cat    <- here("data","RR","category_tree.csv")
+p_or2    <- if (file.exists(here("data","OR2","online_retail_II.csv"))) {
+              here("data","OR2","online_retail_II.csv")
+            } else {
+              here("data","OR2","online_retail_ll.csv")
+            }
 
-# Datensatz bereinigen
-retail_clean <- retail %>%
-  distinct() %>%
-  filter(!is.na(Customer.ID)) %>%
-  filter(!grepl("^C", Invoice)) %>%
-  filter(Quantity > 0, Price > 0)
+# Laden
+events        <- read_csv(p_events, show_col_types = FALSE)
+item_props_1  <- read_csv(p_item1,  show_col_types = FALSE)
+item_props_2  <- read_csv(p_item2,  show_col_types = FALSE)
+category_tree <- read_csv(p_cat,    show_col_types = FALSE)
+online_retail <- read_csv(p_or2,    show_col_types = FALSE)
 
-cat("Bereinigte Daten:", nrow(retail_clean), "Zeilen\n")
+# Erste 5 Zeilen je Datensatz
+head(events, 5)
+head(item_props_1, 5)
+head(item_props_2, 5)
+head(category_tree, 5)
+head(online_retail, 5)
 
-# Alle Variablen erstellen
-retail_viz <- retail_clean %>%
-  mutate(
-    Revenue = Quantity * Price,
-    LogQuantity = log(Quantity + 1),
-    LogPrice = log(Price + 1),
-    LogRevenue = log(Revenue + 1)
-  ) %>%
-  select(Quantity, Price, Revenue, LogQuantity, LogPrice, LogRevenue)
-
-# Daten für Plotting vorbereiten
-retail_long <- retail_viz %>%
-  pivot_longer(everything(), names_to = "Variable", values_to = "Value")
-
-# PLOT 1: Verteilungen (nur erstellen wenn nicht vorhanden)
-plot1_path <- "img/Abbildungen/verteilungen_ecommerce.png"
-if (!file.exists(plot1_path)) {
-  p1 <- ggplot(retail_long, aes(x = Value)) +
-    geom_histogram(bins = 50, fill = "steelblue", alpha = 0.7, color = "black") +
-    facet_wrap(~Variable, scales = "free", ncol = 3) +
-    theme_minimal() +
-    labs(
-      title = "Verteilungen der E-Commerce Kennzahlen",
-      subtitle = paste("Basiert auf", nrow(retail_clean), "Transaktionen"),
-      x = "Wert", y = "Häufigkeit"
-    ) +
-    theme(
-      strip.text = element_text(face = "bold", size = 10),
-      plot.title = element_text(face = "bold", size = 14),
-      axis.text = element_text(size = 9),
-      axis.title = element_text(size = 10)
-    )
-  
-  ggsave(plot1_path, p1, width = 10, height = 6, dpi = 300)
-  cat("Plot 1 erstellt:", plot1_path, "\n")
-} else {
-  cat("Plot 1 bereits vorhanden:", plot1_path, "\n")
-}
-
-# PLOT 2: Korrelationsmatrix (nur erstellen wenn nicht vorhanden)
-plot2_path <- "img/Abbildungen/korrelationsmatrix.png"
-if (!file.exists(plot2_path)) {
-  correlation_matrix <- cor(retail_viz, use = "complete.obs")
-  
-  png(plot2_path, width = 10*300, height = 8*300, res = 300)
-  corrplot(correlation_matrix, 
-           method = "color", type = "upper", order = "hclust",
-           tl.col = "black", tl.srt = 45, addCoef.col = "black",
-           number.cex = 0.8, col = colorRampPalette(c("red", "white", "blue"))(200),
-           title = "Korrelationsmatrix - Online Retail Variablen", mar = c(0,0,2,0))
-  dev.off()
-  cat("Plot 2 erstellt:", plot2_path, "\n")
-} else {
-  cat("Plot 2 bereits vorhanden:", plot2_path, "\n")
-}
-
-# PLOT 3: Scatterplots (nur erstellen wenn nicht vorhanden)
-plot3_path <- "img/Abbildungen/scatterplots_beziehungen.png"
-if (!file.exists(plot3_path)) {
-  cat("Verwende vollstaendigen Datensatz:", nrow(retail_viz), "Transaktionen fuer Scatterplots\n")
-  
-  p3a <- ggplot(retail_viz, aes(x = Quantity, y = Price)) +
-    geom_point(alpha = 0.4, size = 0.8, color = "steelblue") +
-    geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
-    theme_minimal() + 
-    labs(title = "Quantity vs. Price", x = "Menge", y = "Preis") +
-    theme(plot.title = element_text(face = "bold", size = 11))
-  
-  p3b <- ggplot(retail_viz, aes(x = LogQuantity, y = LogPrice)) +
-    geom_point(alpha = 0.4, size = 0.8, color = "darkgreen") +
-    geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
-    theme_minimal() + 
-    labs(title = "Log(Quantity) vs. Log(Price)", x = "Log(Menge)", y = "Log(Preis)") +
-    theme(plot.title = element_text(face = "bold", size = 11))
-  
-  p3c <- ggplot(retail_viz, aes(x = Quantity, y = Revenue)) +
-    geom_point(alpha = 0.4, size = 0.8, color = "purple") +
-    geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
-    theme_minimal() + 
-    labs(title = "Quantity vs. Revenue", x = "Menge", y = "Umsatz") +
-    theme(plot.title = element_text(face = "bold", size = 11))
-  
-  p3d <- ggplot(retail_viz, aes(x = Price, y = Revenue)) +
-    geom_point(alpha = 0.4, size = 0.8, color = "orange") +
-    geom_smooth(method = "lm", color = "red", se = TRUE, linewidth = 1) +
-    theme_minimal() + 
-    labs(title = "Price vs. Revenue", x = "Preis", y = "Umsatz") +
-    theme(plot.title = element_text(face = "bold", size = 11))
-  
-  p3_combined <- (p3a | p3b) / (p3c | p3d) +
-    plot_annotation(
-      title = "Scatterplot-Matrix: Wichtige Beziehungen",
-      theme = theme(plot.title = element_text(face = "bold", size = 14, hjust = 0.5))
-    )
-  
-  ggsave(plot3_path, p3_combined, width = 10, height = 8, dpi = 300)
-  cat("Plot 3 erstellt:", plot3_path, "\n")
-} else {
-  cat("Plot 3 bereits vorhanden:", plot3_path, "\n")
-}
-
-# PLOT 4: Boxplots (nur erstellen wenn nicht vorhanden)
-plot4_path <- "img/Abbildungen/boxplots_verteilungen.png"
-if (!file.exists(plot4_path)) {
-  retail_long_scaled <- retail_viz %>%
-    mutate_all(scale) %>%
-    pivot_longer(everything(), names_to = "Variable", values_to = "Value")
-  
-  p4 <- ggplot(retail_long_scaled, aes(x = Variable, y = Value, fill = Variable)) +
-    geom_boxplot(alpha = 0.7, outlier.size = 0.3) +
-    theme_minimal() +
-    theme(
-      axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
-      axis.text.y = element_text(size = 8),
-      axis.title = element_text(size = 10),
-      plot.title = element_text(face = "bold", size = 12),
-      plot.subtitle = element_text(size = 9)
-    ) +
-    labs(
-      title = "Standardisierte Verteilungen im Vergleich",
-      subtitle = "Boxplots zeigen Median, Quartile und Ausreisser",
-      x = "Variable", y = "Standardisierter Wert"
-    ) +
-    guides(fill = "none")
-  
-  ggsave(plot4_path, p4, width = 10, height = 4, dpi = 300)
-  cat("Plot 4 erstellt:", plot4_path, "\n")
-} else {
-  cat("Plot 4 bereits vorhanden:", plot4_path, "\n")
-}
-
-cat("\nAlle Plots verarbeitet!\n")
 ```
 
-### Verteilungen der E-Commerce Kennzahlen
+\bigskip
 
-Die Analyse der Datenverteilungen zeigt charakteristische Muster für E-Commerce-Transaktionen:
+\noindent Die Ausgaben verdeutlichen die Struktur der Datensätze. Zur besseren Übersicht werden die wichtigsten Variablen und ihre Bedeutungen zusätzlich tabellarisch dargestellt:
 
-![Verteilungen der wichtigsten Variablen](img/Abbildungen/verteilungen_ecommerce.png){#fig-verteilungen width=100%}
+| Variable             | Quelle                          | Bedeutung                                                                 |
+|----------------------|---------------------------------|---------------------------------------------------------------------------|
+| `timestamp`          | RetailRocket (events)           | Zeitstempel in Millisekunden seit 1970, Angabe des Ereigniszeitpunkts     |
+| `visitorid`          | RetailRocket (events)           | Anonymisierte Kennung eines Besuchers                                     |
+| `event`              | RetailRocket (events)           | Typ des Ereignisses: *view*, *addtocart*, *transaction*                   |
+| `itemid`             | RetailRocket (events)           | Artikelkennung                                                            |
+| `transactionid`      | RetailRocket (events)           | ID der Transaktion (optional, nur bei Käufen)                             |
+| `property`           | RetailRocket (item_properties)  | Attribut eines Artikels (z. B. Kategorie, Preis, technische Merkmale)     |
+| `value`              | RetailRocket (item_properties)  | Wert des jeweiligen Attributs                                             |
+| `categoryid`         | RetailRocket (category_tree)    | Identifikator einer Kategorie                                             |
+| `parentid`           | RetailRocket (category_tree)    | Übergeordnete Kategorie, beschreibt die Hierarchie                        |
+| `Invoice`            | Online Retail II                | Rechnungsnummer                                                           |
+| `StockCode`          | Online Retail II                | Artikelcode                                                               |
+| `Description`        | Online Retail II                | Kurzbeschreibung des Artikels                                             |
+| `Quantity`           | Online Retail II                | Menge der verkauften Artikel                                              |
+| `InvoiceDate`        | Online Retail II                | Zeitstempel der Rechnungsstellung                                         |
+| `Price`              | Online Retail II                | Einzelpreis pro Artikel                                                   |
+| `Customer ID`         | Online Retail II                | Anonymisierte Kundenkennung                                               |
+| `Country`            | Online Retail II                | Land des Kunden                                                           |
 
-### Korrelationsstruktur der Variablen
+: Übersicht der Variablen in beiden Datenquellen {#tbl-variablen}
 
-Die Korrelationsmatrix verdeutlicht die Zusammenhänge zwischen den verschiedenen Kennzahlen:
+\medskip
 
-![Korrelationsmatrix der E-Commerce Variablen](img/Abbildungen/korrelationsmatrix.png){#fig-korrelation width=100%}
-
-### Scatterplot-Matrix wichtiger Beziehungen
-
-Die Scatterplots zeigen die Beziehungen zwischen zentralen Variablen auf:
-
-![Wichtige Scatterplot-Beziehungen](img/Abbildungen/scatterplots_beziehungen.png){#fig-scatterplots width=100%}
-
-### Standardisierte Verteilungen im Vergleich
-
-Die Boxplots ermöglichen einen direkten Vergleich der Variablenverteilungen:
-
-![Standardisierte Verteilungen im Vergleich](img/Abbildungen/boxplots_verteilungen.png){#fig-boxplots width=100%}
-
-```{r statistics-table}
-#| eval: true
-#| echo: true
-#| results: true
-#| warning: false
-#| message: false
-
-# Deskriptive Statistiken (nutzt die bereits geladenen Daten)
-summary_stats <- retail_viz %>%
-  summarise(
-    across(everything(), list(
-      Missing = ~sum(is.na(.)),
-      `Missing %` = ~round(sum(is.na(.)) / length(.) * 100, 1),
-      Distinct = ~n_distinct(.),
-      Min = ~round(min(., na.rm = T), 2),
-      Median = ~round(median(., na.rm = T), 2),
-      Max = ~round(max(., na.rm = T), 2),
-      Mean = ~round(mean(., na.rm = T), 2),
-      SD = ~round(sd(., na.rm = T), 2)
-    ))
-  ) %>%
-  pivot_longer(everything(), names_to = c("Variable", "Statistic"), names_sep = "_") %>%
-  pivot_wider(names_from = Statistic, values_from = value)
-
-# GT-Tabelle für PDF
-summary_stats %>%
-  gt() %>%
-  tab_header(
-    title = "Deskriptive Statistiken - Online Retail Dataset",
-    subtitle = paste("Basiert auf", nrow(retail_clean), "Transaktionen")
-  ) %>%
-  tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_column_labels()
-  ) %>%
-  tab_style(
-    style = cell_text(weight = "bold"),
-    locations = cells_body(columns = Variable)
-  ) %>%
-  fmt_number(
-    columns = c(Min, Median, Max, Mean, SD),
-    decimals = 2
-  ) %>%
-  tab_options(
-    table.font.size = 10,
-    heading.title.font.size = 12,
-    heading.subtitle.font.size = 10
-  )
-```
-
-
-
+\noindent Diese Gegenüberstellung verknüpft die in 3.2 beschriebenen Quellen mit den nachfolgenden Transformationsschritten.
 
 ::: {#sec-anhangC.2}
-## C.2: Skalierung und Transformation {.unnumbered}
+## C.2: Abbildung auf ein einheitliches Ereignisschema {.unnumbered}
 :::
+
+Ziel ist ein gemeinsames Schema für beide Quellen. RetailRocket liefert Interaktionen, Online Retail II liefert Käufe. Das vereinheitlichte Ereignisschema ermöglicht konsistente Merkmalsbildung für 4.1 und robuste Inputs für 4.2–4.3.
+
+Zuordnung der Quell- zu den Zielvariablen
+
+| Zielvariable            | RetailRocket (Quelle)             | Online Retail II (Quelle) | Bedeutung                                          |
+|-------------------------|-----------------------------------|---------------------------|----------------------------------------------------|
+| `customer_id`           | `visitorid`                       | `Customer ID`              | Anonymisierte Kennung des Kunden                   |
+| `item_id`               | `itemid`                          | `StockCode`               | Artikelkennung                                     |
+| `timestamp`             | `timestamp` (ms seit 1970)        | `InvoiceDate`             | Zeitpunkt des Ereignisses / der Transaktion        |
+| `event_type`            | `event` (*view*, *addtocart*, *transaction*)      | implizit: immer *purchase* | Typ des Ereignisses               |
+| `transactionid`         | `transactionid` (falls Kauf)      | `Invoice`                 | Eindeutige Transaktionskennung                     |
+| `quantity`              | nicht enthalten                   | `Quantity`                | Anzahl der verkauften Artikel                      |
+| `price`                 | über `item_properties`            | `Price`                   | Einzelpreis pro Artikel                            |
+| `revenue`               | berechnet: quantity × price       | berechnet: Quantity × Price | Umsatz pro Ereignis                              |
+| `category`              | aus `category_tree`               | ggf. aus `Description`    | Zuordnung zu einer Produktkategorie                |
+
+: Abbildung der Variablen auf das Ereignisschema {#tbl-ereignisschema}
+
+\medskip
+
+\noindent Während RetailRocket eine feingranulare Unterscheidung nach Ereignistypen erlaubt (*view*, *addtocart*, *transaction*), bildet Online Retail II ausschließlich abgeschlossene Käufe ab. Beide Datensätze liefern somit unterschiedliche, aber komplementäre Informationen.  
+
+Die Abbildung in ein gemeinsames Schema stellt sicher, dass spätere Merkmalsberechnungen (z. B. Recency, Frequency, Monetary-Werte, Kaufintervalle, Diversität) auf konsistenter Datenbasis erfolgen können.  
+
+Die Umsetzung der Transformation erfolgt mit R. Der folgende Chunk zeigt exemplarisch, wie die Zielvariablen aus beiden Quellen generiert werden.
+
+
+```{r c.2-Einheitliches_Ereignisschema}
+
+#| eval=TRUE
+#| echo=TRUE
+#| include=TRUE
+#| results=TRUE
+#| message=FALSE
+#| warning=FALSE
+
+# RetailRocket auf Ereignisschema abbilden
+rr_events <- events %>%
+  select(customer_id = visitorid,
+         item_id     = itemid,
+         timestamp   = timestamp,
+         event_type  = event,
+         transactionid) %>%
+  mutate(timestamp   = as.POSIXct(timestamp/1000, origin="1970-01-01", tz="UTC"),
+         quantity    = ifelse(event_type == "transaction", 1, NA),
+         price       = NA_real_,   # später aus item_properties
+         revenue     = ifelse(!is.na(quantity) & !is.na(price), quantity * price, NA_real_),
+         category    = NA_character_) # später aus category_tree
+
+# Online Retail II auf Ereignisschema abbilden
+or2_events <- online_retail %>%
+  select(transactionid = Invoice,
+         item_id       = StockCode,
+         customer_id   = `Customer ID`,
+         timestamp     = InvoiceDate,
+         quantity      = Quantity,
+         price         = Price,
+         country       = Country,
+         description   = Description) %>%   # hier mit reinnehmen
+  mutate(event_type = "purchase",
+         revenue    = quantity * price,
+         category   = description)          # hier benutzen
+
+
+# Vorschau
+head(rr_events, 5)
+head(or2_events, 5)
+
+```
+
+\medskip
+
+\noindent In der harmonisierten Tabelle von RetailRocket bleiben die Variablen `quantity`, `price`, `revenue` und `category` zunächst leer, da diese Informationen im Rohdatensatz nicht in direkter Form vorliegen. Diese Spalten wurden dennoch angelegt, um die Struktur beider Quellen konsistent zu halten und spätere Ergänzungen zu ermöglichen.  
+
+Bei Online Retail II sind diese Variablen hingegen vollständig verfügbar: Transaktionskennungen, Mengen, Preise und Umsätze können direkt übernommen werden. Der Ereignistyp ist dort implizit immer ein Kauf (*purchase*), sodass keine Unterscheidung zwischen verschiedenen Interaktionen möglich ist.  
+
+Die Abbildung verdeutlicht damit die komplementäre Natur der Daten: RetailRocket liefert eine feingranulare Sicht auf Nutzerverhalten, Online Retail II eine wertbasierte Sicht auf Käufe. Das vereinheitlichte Ereignisschema stellt sicher, dass in den folgenden Schritten (vgl. [C.3 Bereinigungsschritte](#sec-anhangC3) und [C.4 Normalisierung der Zeitstempel](#sec-anhangC4)) eine konsistente Datenbasis für die Merkmalsbildung geschaffen wird.
 
 ::: {#sec-anhangC.3}
-## C.3: Explorative Datenanalyse (zusätzliche Plots, Tabellen, Code) {.unnumbered}
+## C.3: Bereinigungsschritte {.unnumbered}
 :::
 
-\clearpage
+Die Rohdaten enthalten neben den relevanten Informationen auch fehlerhafte oder problematische Einträge. Um eine konsistente Datenbasis für die spätere Merkmalsbildung zu schaffen, wurden die folgenden Regeln angewandt: \medskip
+
+  1. Pflichtfelder: Beobachtungen ohne Kunden-, Artikel- oder Zeitangabe wurden entfernt.
+  2. Duplikate: Exakte Dubletten (gleiche Kunden-, Artikel-, Zeit- und Ereignisinformationen) wurden eliminiert.
+  3. Rückgaben: Im Datensatz Online Retail II wurden negative Mengen sowie Rechnungsnummern mit Präfix „C“ als Rückgaben gekennzeichnet. Diese Ereignisse erhielten den Typ `return`.
+  4. Ausreißer: Mengen und Preise wurden per Winsorisierung auf das 1. und 99. Perzentil begrenzt, um extreme Werte abzuflachen.
+  5. Fehlerhafte Werte: Offensichtlich ungültige Beobachtungen (z. B. Mengen ≤ 0 nach Winsorisierung) wurden ausgeschlossen.
+
+\medskip
+
+\noindent Im RetailRocket-Datensatz bleiben die Variablen `quantity`, `price` und `revenue` leer, da diese Informationen dort nicht in direkter Form vorliegen. Die Ereignisse konzentrieren sich auf Interaktionen wie *view*, *addtocart* und *transaction*. Im Online-Retail-II-Datensatz konnten dagegen Transaktionskennungen, Mengen, Preise und Umsätze bereinigt und in plausibler Form übernommen werden.  
+
+Die Anwendung dieser Regeln stellt sicher, dass Auswertungen auf stabilen Grundlagen erfolgen und Verzerrungen durch fehlerhafte Einträge vermieden werden. Die bereinigten Daten bilden damit die Ausgangsbasis für die Normalisierung der Zeitangaben in Abschnitt [C.4](#sec-anhangC4).
+
+```{r c3-bereinigung, echo=TRUE, message=FALSE, warning=FALSE, include=TRUE, cache=TRUE}
+# benötigte Pakete
+library(dplyr)
+library(stringr)
+
+# Vorbedingungen prüfen
+if (!exists("rr_events"))  stop("rr_events fehlt. Bitte C.2 ausführen.")
+if (!exists("or2_events")) stop("or2_events fehlt. Bitte C.2 ausführen.")
+
+# Hilfsfunktion: sichere Winsorisierung (tut nichts, wenn zu wenig gültige Werte vorliegen)
+safe_winsorize <- function(x, p_low = 0.01, p_high = 0.99) {
+  if (!is.numeric(x)) return(x)
+  nn <- sum(!is.na(x))
+  if (nn < 10) return(x)
+  lo <- suppressWarnings(quantile(x, probs = p_low, na.rm = TRUE))
+  hi <- suppressWarnings(quantile(x, probs = p_high, na.rm = TRUE))
+  x <- pmin(pmax(x, lo), hi)
+  as.numeric(x)
+}
+
+# 1) RetailRocket bereinigen
+# Pflichtfelder belegen, exakte Duplikate entfernen
+rr_clean <- rr_events %>%
+  # nur wirklich notwendige Felder
+  select(customer_id, item_id, timestamp, event_type, transactionid,
+         quantity, price, revenue, category) %>%
+  # Pflichtfelder
+  filter(!is.na(customer_id), !is.na(item_id), !is.na(timestamp), !is.na(event_type)) %>%
+  # exakte Duplikate
+  distinct(customer_id, item_id, timestamp, event_type, transactionid, .keep_all = TRUE)
+
+# 2) Online Retail II bereinigen
+# Rückgaben-Regel und Felder füllen
+or2_clean <- or2_events %>%
+  select(transactionid, item_id, customer_id, timestamp, quantity, price, country, description,
+         event_type, revenue, category) %>%
+  mutate(
+    quantity = suppressWarnings(as.numeric(quantity)),
+    price    = suppressWarnings(as.numeric(price))
+  ) %>%
+  filter(!is.na(customer_id), !is.na(item_id), !is.na(timestamp)) %>%
+  mutate(
+    return_flag  = (!is.na(quantity) & quantity < 0) |
+                   (!is.na(transactionid) & grepl("^C", as.character(transactionid))),
+    quantity_abs = if_else(return_flag & !is.na(quantity), abs(quantity), quantity),
+    event_type   = if_else(return_flag, "return", "purchase"),
+    category     = coalesce(category, description),
+    revenue      = if_else(!is.na(quantity_abs) & !is.na(price), quantity_abs * price, revenue)
+  ) %>%
+  distinct(transactionid, item_id, customer_id, timestamp, quantity_abs, price, event_type, .keep_all = TRUE) %>%
+  mutate(
+    quantity_w = safe_winsorize(quantity_abs, 0.01, 0.99),
+    price_w    = safe_winsorize(price,       0.01, 0.99),
+    revenue_w  = quantity_w * price_w
+  ) %>%
+  filter(is.na(quantity_w) | quantity_w > 0,
+         is.na(price_w)    | price_w    > 0)
+
+# kurze Sichtprüfungen
+head(rr_clean, 5)
+head(or2_clean, 5)
+```
+
+
+
+\medskip
+
+Die Vorschau zeigt, dass Pflichtfelder belegt sind, Duplikate entfernt wurden und Rückgaben in Online Retail II über `event_type = return` gekennzeichnet sind. Mengen und Preise wurden dort per Winsorisierung begrenzt und als `quantity_w` und `price_w` bereitgestellt.
+
+::: {#sec-anhangC.4}
+## C.4: Normalisierung der Zeitstempel {.unnumbered}
+:::
+
+Neben inhaltlichen Bereinigungen ist auch die einheitliche Behandlung der Zeitangaben erforderlich. Beide Datensätze enthalten Zeitinformationen, die jedoch in unterschiedlicher Form vorliegen. \medskip
+
+  - Im RetailRocket-Datensatz werden Zeitstempel in Millisekunden seit dem 1. Januar 1970 gespeichert
+  - Im Online-Retail-II-Datensatz liegt das Kaufdatum bereits als Datumsfeld (InvoiceDate) vor, allerdings ohne einheitliche Ableitung von Kalendermerkmalen
+
+\medskip
+
+\noindent Um die Daten konsistent nutzen zu können, wurden folgende Schritte durchgeführt: \smallskip
+
+  1. Konvertierung in ein einheitliches Format. Alle Zeitangaben wurden in das POSIXct-Format überführt und zusätzlich als Datum (date) abgespeichert.
+  2. Ableitung von Kalendermerkmalen. Aus den Zeitstempeln wurden standardisierte Variablen für Wochentag (wday), Stunde (hour), Monat (month) und Jahr (year) berechnet.
+  3. Harmonisierung der Skalen. Damit liegen beide Quellen auf derselben Zeitskala vor, was aggregierte Analysen und Vergleiche zwischen RetailRocket und Online Retail II ermöglicht.
+  
+\medskip
+
+\noindent Die Normalisierung erlaubt es, zeitliche Muster in beiden Quellen konsistent zu erfassen, beispielsweise bevorzugte Kaufzeiten oder saisonale Effekte. Diese Variablen werden in der Merkmalsbildung (vgl. Abschnitt ) eingesetzt, um Kundencluster auch anhand von Verhaltensrhythmen zu unterscheiden.
+
+```{r C.4-setup}
+
+#| include: true
+library(reticulate)
+knitr::opts_chunk$set(python.reticulate = TRUE)
+set.seed(42)
+
+```
+
+```{r C.4-zeit-normalisierung}
+
+
+# Dateien: 
+#   cache/rr_time.rds  = normalisierte RetailRocket-Daten
+#   cache/or2_time.rds = normalisierte Online-Retail-II-Daten
+
+#| eval: true
+#| echo: true
+#| message: false
+#| warning: false
+
+library(dplyr)
+library(lubridate)
+
+if (!exists("rr_clean") || !exists("or2_clean")) {
+  stop("C.4 benötigt rr_clean und or2_clean aus C.3.")
+}
+
+dir.create("cache", showWarnings = FALSE)
+rr_file  <- "cache/rr_time.rds"
+or2_file <- "cache/or2_time.rds"
+
+to_iso_utc <- function(x) {
+  format(with_tz(as.POSIXct(x, tz = "UTC"), "UTC"), "%Y-%m-%dT%H:%M:%SZ")
+}
+
+if (file.exists(rr_file) && file.exists(or2_file)) {
+  rr_time  <- readRDS(rr_file)
+  or2_time <- readRDS(or2_file)
+} else {
+  rr_time <- rr_clean %>%
+    mutate(
+      timestamp    = as.POSIXct(timestamp, tz = "UTC"),
+      date         = as.Date(timestamp),
+      wday         = wday(timestamp, label = TRUE, abbr = TRUE, week_start = 1),
+      hour         = hour(timestamp),
+      month        = month(timestamp, label = TRUE, abbr = TRUE),
+      year         = year(timestamp),
+      timestamp_iso = to_iso_utc(timestamp)
+    )
+
+  or2_time <- or2_clean %>%
+    mutate(
+      timestamp    = as.POSIXct(timestamp, tz = "UTC"),
+      date         = as.Date(timestamp),
+      wday         = wday(timestamp, label = TRUE, abbr = TRUE, week_start = 1),
+      hour         = hour(timestamp),
+      month        = month(timestamp, label = TRUE, abbr = TRUE),
+      year         = year(timestamp),
+      timestamp_iso = to_iso_utc(timestamp)
+    )
+
+  saveRDS(rr_time, rr_file)
+  saveRDS(or2_time, or2_file)
+}
+
+py$rr_time <- rr_time %>%
+  select(customer_id, item_id, timestamp = timestamp_iso, event_type)
+
+py$or2_time <- or2_time %>%
+  select(customer_id, item_id, timestamp = timestamp_iso, event_type,
+         quantity_w, price_w, revenue_w)
+
+list(
+  rr_time_head  = head(select(rr_time,  customer_id, item_id, timestamp, timestamp_iso, event_type), 3),
+  or2_time_head = head(select(or2_time, customer_id, item_id, timestamp, timestamp_iso, event_type,
+                              quantity_w, price_w, revenue_w), 3)
+)
+
+```
+
+\medskip
+
+
+\noindent Die Normalisierung liegt damit für beide Datensätze in identischer Struktur vor. Die abgeleiteten Kalendermerkmale werden in der Merkmalsbildung genutzt und erlauben zeitliche Musteranalysen ohne zusätzliche Transformationen.
+
+::: {#sec-anhangC5}
+## C.5: Zusammenfassung des bereinigten Datenbestands {.unnumbered}
+:::
+
+Die Abschnitte [C.3](#sec-anhangC.3) und [C.4](#sec-anhangc.4) haben die Bereinigung und die Normalisierung der Zeitangaben dokumentiert. In diesem Abschnitt wird der bereinigte Datenbestand in komprimierter Form zusammengefasst. Dadurch lässt sich die Qualität der Datenbasis einschätzen, die in Abschnitt  für die Ableitung der Cluster-Merkmale genutzt wird.  
+
+\medskip
+
+Zentrale Fragen der Plausibilisierung sind: \smallskip
+
+  1. Wie groß sind die Datensätze nach der Bereinigung?
+  2. Welche Verteilungen zeigen die kaufbezogenen Variablen in Online Retail II?
+  3. Sind die Strukturen der beiden Quellen konsistent nutzbar?
+
+
+```{r C.5-zusammenfassung}
+
+
+# Datei: cache/zusammenfassung.rds = Dimensionen, Missing, Duplikate, Verteilungen, Ereignisse, Abdeckung
+
+#| eval: true
+#| echo: true
+#| message: false
+#| warning: false
+#| dependson: ["c4-zeit-normalisierung"]
+
+library(dplyr)
+library(tidyr)
+library(lubridate)
+
+# Guards
+if (!exists("rr_time") || !exists("or2_time")) {
+  stop("C.5 benötigt rr_time und or2_time aus C.4.")
+}
+
+file_sum <- "cache/zusammenfassung.rds"
+
+if (file.exists(file_sum)) {
+  res <- readRDS(file_sum)
+} else {
+
+  # 1) Dimensionsübersicht
+  dim_summary <- tibble::tibble(
+    datensatz = c("RetailRocket (bereinigt + normalisiert)", "Online Retail II (bereinigt + normalisiert)"),
+    n_zeilen  = c(nrow(rr_time), nrow(or2_time)),
+    n_spalten = c(ncol(rr_time), ncol(or2_time))
+  )
+
+  # 2) Vollständigkeit zentraler Felder
+  missing_rr  <- rr_time  %>%
+    summarise(across(c(customer_id, item_id, timestamp, event_type), ~ sum(is.na(.)))) %>%
+    pivot_longer(everything(), names_to = "feld", values_to = "missing") %>%
+    mutate(datensatz = "RetailRocket")
+
+  missing_or2 <- or2_time %>%
+    summarise(across(c(customer_id, item_id, timestamp, event_type, quantity_w, price_w, revenue_w), ~ sum(is.na(.)))) %>%
+    pivot_longer(everything(), names_to = "feld", values_to = "missing") %>%
+    mutate(datensatz = "Online Retail II")
+
+  missing_summary <- bind_rows(missing_rr, missing_or2) %>%
+    relocate(datensatz)
+
+  # 3) Duplikatprüfung auf technischem Schlüssel
+  dup_rr <- rr_time %>%
+    mutate(key = paste(customer_id, item_id, timestamp, event_type, sep = "|")) %>%
+    summarise(dups = sum(duplicated(key)), share = round(mean(duplicated(key)), 6)) %>%
+    mutate(datensatz = "RetailRocket")
+
+  dup_or2 <- or2_time %>%
+    mutate(key = paste(customer_id, item_id, timestamp, event_type, sep = "|")) %>%
+    summarise(dups = sum(duplicated(key)), share = round(mean(duplicated(key)), 6)) %>%
+    mutate(datensatz = "Online Retail II")
+
+  duplicate_summary <- bind_rows(dup_rr, dup_or2) %>% relocate(datensatz)
+
+  # 4) Verteilungen kaufrelevanter Variablen (nur OR2)
+  quantiles <- c(0, .01, .05, .25, .5, .75, .95, .99, 1)
+
+  dist_or2 <- or2_time %>%
+    select(quantity_w, price_w, revenue_w) %>%
+    pivot_longer(everything(), names_to = "variable", values_to = "wert") %>%
+    filter(is.finite(wert)) %>%
+    group_by(variable) %>%
+    summarise(
+      n         = n(),
+      missing   = sum(is.na(wert)),
+      mean      = mean(wert, na.rm = TRUE),
+      sd        = sd(wert, na.rm = TRUE),
+      q0        = quantile(wert, probs = quantiles[1], na.rm = TRUE),
+      q01       = quantile(wert, probs = quantiles[2], na.rm = TRUE),
+      q05       = quantile(wert, probs = quantiles[3], na.rm = TRUE),
+      q25       = quantile(wert, probs = quantiles[4], na.rm = TRUE),
+      q50       = quantile(wert, probs = quantiles[5], na.rm = TRUE),
+      q75       = quantile(wert, probs = quantiles[6], na.rm = TRUE),
+      q95       = quantile(wert, probs = quantiles[7], na.rm = TRUE),
+      q99       = quantile(wert, probs = quantiles[8], na.rm = TRUE),
+      q100      = quantile(wert, probs = quantiles[9], na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(across(where(is.numeric), ~ round(., 4)))
+
+  # 5) Ereignisverteilung
+  evt_rr  <- rr_time  %>% count(event_type, name = "n") %>% mutate(datensatz = "RetailRocket") %>% relocate(datensatz)
+  evt_or2 <- or2_time %>% count(event_type, name = "n") %>% mutate(datensatz = "Online Retail II") %>% relocate(datensatz)
+  event_summary <- bind_rows(evt_rr, evt_or2)
+
+  # 6) Zeitliche Abdeckung nach Jahr-Monat
+  cover_rr <- rr_time %>%
+    mutate(year_month = format(as.Date(timestamp), "%Y-%m")) %>%
+    count(year_month, name = "n") %>%
+    mutate(datensatz = "RetailRocket") %>%
+    select(datensatz, everything())
+
+  cover_or2 <- or2_time %>%
+    mutate(year_month = format(as.Date(timestamp), "%Y-%m")) %>%
+    count(year_month, name = "n") %>%
+    mutate(datensatz = "Online Retail II") %>%
+    select(datensatz, everything())
+
+  coverage_summary <- bind_rows(cover_rr, cover_or2) %>% arrange(datensatz, year_month)
+
+  # 7) Ausgabe bündeln
+  res <- list(
+    dimensionen         = dim_summary,
+    fehlende_werte      = missing_summary,
+    duplikate           = duplicate_summary,
+    verteilungen_or2    = dist_or2,
+    ereignisse          = event_summary,
+    zeitliche_abdeckung = coverage_summary,
+    beispiel_rr         = head(select(rr_time, customer_id, item_id, timestamp, event_type), 5),
+    beispiel_or2        = head(select(or2_time, customer_id, item_id, timestamp, event_type,
+                                      quantity_w, price_w, revenue_w), 5)
+  )
+
+  saveRDS(res, file_sum)
+}
+
+res
+
+```
+
+Die Übersicht zeigt, dass beide Quellen nach der Bereinigung eine substanzielle Anzahl an Beobachtungen enthalten und somit ausreichend groß für die geplante Clusteranalyse sind.  
+
+Die kaufbezogenen Variablen im Online-Retail-II-Datensatz weisen nach Winsorisierung plausible Wertebereiche auf, extreme Ausreißer wurden erfolgreich begrenzt. Rückgaben sind als eigene Ereignisse gekennzeichnet und können später gesondert berücksichtigt werden.  
+
+Der RetailRocket-Datensatz bildet dagegen ausschließlich Interaktionen ab, liefert aber mit den normalisierten Zeitfeldern eine konsistente Ergänzung zur transaktionsorientierten Sicht von Online Retail II.  
+
+Damit ist eine robuste und vergleichbare Datenbasis geschaffen, auf der in Abschnitt  die eigentlichen Analysemerkmale konstruiert werden.
+
+::: {#sec-anhangC.6}
+## C.6 Clustertendenz mit der Hopkins-Statistik {.unnumbered}
+:::
+
+Ziel dieses Abschnitts ist eine transparente Vorprüfung, ob der gewählte Merkmalsraum eine ausgeprägte Tendenz zur Clusterbildung zeigt. Die Hopkins Statistik dient hier als heuristischer Pre Check und überbrückt damit zwischen Abschnitt 4.3 Validierung theoretisch und Abschnitt 5.2 Clustering Ergebnisse. Wichtig für die Interpretation ist die Einordnung der Werte: \smallskip
+
+  * H etwa 0.5 deutet auf eine eher zufällige Verteilung hin.
+  * H deutlich über 0.5 spricht für Clustertendenz. 
+  * H deutlich unter 0.5 weist auf regelmäßige anti clusternde Muster hin.
+
+Die Analyse erfolgt reproduzierbar mit Stichprobenziehung, Mehrfachschätzung und Konfidenzintervall. Große Rechenlast wird durch Subsampling gesteuert. Alle Berechnungen basieren auf den in C.4 normalisierten Daten or2_time und verwenden die kaufrelevanten Merkmale quantity w, price w und revenue w.
+
+
+```{r C.6-hopkins}
+
+
+# Datei: cache/hopkins.rds = Ergebnis Hopkins-Statistik (inkl. CI und Einordnung)
+
+#| eval: true
+#| echo: true
+#| message: false
+#| warning: false
+#| dependson: ["c4-zeit-normalisierung"]
+
+library(dplyr)
+library(tibble)
+library(clustertend)
+
+# Guard
+if (!exists("or2_time")) {
+  stop("C.6 benötigt 'or2_time' aus C.4.")
+}
+
+# Optionaler Schnellmodus aus C.4; falls nicht gesetzt, hier definieren
+if (!exists("FAST")) FAST <- TRUE
+
+# Cache-Datei
+dir.create("cache", showWarnings = FALSE)
+file_hop <- "cache/hopkins.rds"
+
+if (file.exists(file_hop)) {
+  hop_res <- readRDS(file_hop)
+} else {
+  # Parameter
+  set.seed(42)
+  HOP_NROWS <- if (FAST) 1500L else 5000L   # maximale Stichprobengröße
+  HOP_R     <- if (FAST) 10L    else 25L    # Wiederholungen für CI
+  HOP_N     <- 300L                         # n für clustertend::hopkins
+
+  # Datenmatrix vorbereiten
+  dat0 <- or2_time %>%
+    select(quantity_w, price_w, revenue_w) %>%
+    filter(if_all(everything(), ~ is.finite(.)))
+
+  stopifnot(nrow(dat0) >= 50)
+
+  dat_s <- dplyr::slice_sample(dat0, n = min(HOP_NROWS, nrow(dat0)))
+  X     <- scale(as.matrix(dat_s))
+  n_h   <- min(HOP_N, nrow(X) - 1L)
+
+  # Helper robust gegenüber Rückgabeformaten unterschiedlicher clustertend Versionen
+  get_H <- function(mat, n) {
+    res <- clustertend::hopkins(mat, n = n)
+    if (is.list(res) && !is.null(res$H)) return(unname(res$H))
+    as.numeric(res)[1]
+  }
+
+  # Einzelschätzung
+  H_once <- get_H(X, n_h)
+
+  # Mehrfachschätzung und Intervall
+  h_vals <- replicate(HOP_R, get_H(X, n_h))
+  H_mean <- mean(h_vals)
+  H_sd   <- stats::sd(h_vals)
+  H_ci   <- c(H_mean - 1.96 * H_sd / sqrt(HOP_R),
+              H_mean + 1.96 * H_sd / sqrt(HOP_R))
+
+  interpretation <- dplyr::case_when(
+    H_mean > 0.75 ~ "deutliche Clustertendenz",
+    H_mean < 0.25 ~ "regelmäßige anti clusternde Struktur",
+    TRUE          ~ "eher zufällig verteilt"
+  )
+
+  hop_res <- tibble(
+    n_verfuegbar = nrow(dat0),
+    n_verwendet  = nrow(X),
+    hopkins_n    = n_h,
+    repeats      = HOP_R,
+    H_once       = round(H_once, 3),
+    H_mean       = round(H_mean, 3),
+    H_ci_low     = round(H_ci[1], 3),
+    H_ci_up      = round(H_ci[2], 3),
+    einordnung   = interpretation
+  )
+
+  saveRDS(hop_res, file_hop)
+}
+
+hop_res
+
+
+```
+
+
+```{r C.6-hopkins-grid}
+
+
+# Datei: cache/hopkins_grid.rds = Sensitivitätsanalyse Hopkins-Statistik (verschiedene n)
+
+#| eval: !FAST
+#| echo: true
+#| message: false
+#| warning: false
+#| dependson: ["c6-hopkins"]
+
+dir.create("cache", showWarnings = FALSE)
+file_grid <- "cache/hopkins_grid.rds"
+
+if (file.exists(file_grid)) {
+  grid_tbl <- readRDS(file_grid)
+} else {
+  set.seed(42)
+  n_grid <- c(50L, 100L, 200L, min(300L, nrow(X) - 1L))
+
+  grid_tbl <- lapply(n_grid, function(n) {
+    vals <- replicate(25L, get_H(X, n))
+    tibble(
+      hopkins_n = n,
+      mean      = mean(vals),
+      sd        = sd(vals),
+      ci_low    = mean(vals) - 1.96 * sd(vals) / sqrt(length(vals)),
+      ci_up     = mean(vals) + 1.96 * sd(vals) / sqrt(length(vals))
+    )
+  }) %>% dplyr::bind_rows() %>%
+    mutate(across(where(is.numeric), ~ round(., 3)))
+
+  saveRDS(grid_tbl, file_grid)
+}
+
+grid_tbl
+
+
+```
+  
+\noindent Die Hopkins-Vorprüfung zeigt, ob der Datensatz eine hinreichende Clustertendenz aufweist und rechtfertigt damit die nachgelagerte Segmentbildung. Konzeptionell ist die Maßzahl in Abschnitt 4.3 Validierung verankert; praktisch dient sie als Vorstufe für die in Abschnitt 5.2 berichteten Clustering-Ergebnisse.
+  
+
+
+
+::: {#sec-anhangC.7}
+## C.7 Modellierungsschritte mit Python: K-Means und HDBSCAN {.unnumbered}
+:::
+
+
+
+In diesem Abschnitt werden die in Abschnitt 4.2 beschriebenen Verfahren technisch umgesetzt. Die resultierenden Zuordnungen fließen in die Ergebnisdarstellung und Validierung in Abschnitt 5.2 ein. Die inhaltliche Interpretation der Segmente erfolgt in Abschnitt 5.3.
+
+
+\myheading{K-Means}
+
+K-Means dient als zentroidbasierte Referenz. Die Verfahrenseigenschaften sind in Abschnitt 4.2 beschrieben. Der hier verwendete Startwert für k wird nicht an dieser Stelle optimiert; die Zweckmäßigkeit der resultierenden Segmentstruktur wird in Abschnitt 5.2 anhand der dort berichteten Qualitätsmaße beurteilt.
+
+
+K-Means ist ein partitionierendes Verfahren, das Beobachtungen so gruppiert, dass die Variation innerhalb der Cluster minimiert und jedes Cluster durch sein Zentrum (Centroid) repräsentiert wird. Die Anzahl der Cluster \(k\) muss vorab festgelegt werden, wodurch eine Annahme über die Struktur der Daten getroffen wird.  
+
+Der K-Means-Lauf mit $k = 5$ liefert eine schnelle Baseline, führt hier aber zu stark unbalancierten Clustern (ein dominantes Groß-Cluster und mehrere kleine).  
+Ob $k = 5$ angemessen ist, prüfen wir systematisch in Kapitel 4 (u. a. Silhouette, Davies-Bouldin, Stabilität).
+
+
+Im Folgenden wird exemplarisch ein Startwert von fünf Clustern gewählt. Die eigentliche Validierung, ob diese Zahl angemessen ist, erfolgt nicht hier, sondern systematisch in [Kapitel 4: Evaluation und Ergebnisse](#sec-evaluation) anhand von Silhouette, Davies-Bouldin und Stabilitätsmaßen.
+
+```{python C.7-kmeans}
+
+
+
+# Datei: cache/cluster_kmeans.parquet = KMeans-Ergebnisse (k=5)
+
+#| dependson: ["c4-zeit-normalisierung"]
+#| eval: true
+#| echo: true
+#| message: false
+#| warning: false
+
+import os, numpy as np, pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+
+os.makedirs("cache", exist_ok=True)
+out_file = "cache/cluster_kmeans.parquet"
+
+if os.path.exists(out_file):
+    cluster_kmeans_df = pd.read_parquet(out_file)
+else:
+    np.random.seed(42)
+
+    # Daten aus R (C.4 übergibt timestamp als ISO-String)
+    df = or2_time.copy()
+    df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+
+    features = ["quantity_w", "price_w", "revenue_w"]
+    Xdf = df[features].replace([np.inf, -np.inf], np.nan).dropna()
+
+    X = StandardScaler().fit_transform(Xdf)
+
+    # Baseline k=5; Bewertung und Optimierung erfolgen in 5.2
+    km = KMeans(n_clusters=5, random_state=42, n_init=10)
+    labels = km.fit_predict(X)
+
+    out = df.loc[Xdf.index, ["customer_id", "item_id", "timestamp"]].copy()
+    out["cluster_kmeans"] = labels
+
+    # Für reticulate nach R exportieren
+    cluster_kmeans_df = out
+
+    # Datei speichern
+    cluster_kmeans_df.to_parquet(out_file, index=False)
+
+cluster_kmeans_df.head(10)
+
+
+```
+
+\medskip
+
+\noindent Das Ergebnis ist eine Zuordnung jeder Beobachtung zu einem Cluster. Die Details zur Beurteilung der Clusterqualität und -anzahl erfolgen später in [Kapitel 4](#sec-evaluation).
+
+\myheading{HDBSCAN}
+
+HDBSCAN bildet als dichtebasiertes Verfahren ungleichförmige Strukturen und Rauschen ab. Die Verfahrenseigenschaften sind in Abschnitt 4.2 beschrieben. Die Bewertung der resultierenden Struktur erfolgt in Abschnitt 5.2; die inhaltliche Einordnung der Segmente folgt in Abschnitt 5.3.
+
+HDBSCAN ist ein hierarchisch-dichtebasiertes Verfahren, das im Gegensatz zu K-Means keine feste Clusteranzahl vorgibt. Stattdessen werden Regionen hoher Dichte als Cluster erkannt, während dünn besetzte Bereiche als Rauschen ausgewiesen werden. Damit eignet sich HDBSCAN besonders für komplex geformte und unterschiedlich große Cluster.
+
+```{python C.7-hdbscan}
+
+
+# Datei: cache/cluster_hdbscan.parquet = HDBSCAN-Ergebnisse
+
+#| dependson: ["c4-zeit-normalisierung"]
+#| eval: true
+#| echo: true
+#| message: false
+#| warning: false
+
+import os, numpy as np, pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.utils.validation import check_array
+
+np.random.seed(42)
+
+try:
+    import hdbscan
+except Exception:
+    raise SystemExit("HDBSCAN ist nicht installiert. Bitte ausführen: pip install hdbscan")
+
+os.makedirs("cache", exist_ok=True)
+out_file = "cache/cluster_hdbscan.parquet"
+
+if os.path.exists(out_file):
+    cluster_hdbscan_df = pd.read_parquet(out_file)
+else:
+    df = or2_time.copy()
+    df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+
+    features = ["quantity_w", "price_w", "revenue_w"]
+    Xdf = df[features].replace([np.inf, -np.inf], np.nan).dropna()
+
+    # optionales Downsampling für sehr große Datensätze
+    n_max = 200_000
+    if len(Xdf) > n_max:
+        Xdf = Xdf.sample(n=n_max, random_state=42)
+
+    X_np = check_array(Xdf.to_numpy(dtype=float), ensure_all_finite=True)
+    X = StandardScaler(copy=True).fit_transform(X_np)
+
+    clusterer = hdbscan.HDBSCAN(
+        min_cluster_size=50,
+        min_samples=5,
+        metric="euclidean",
+        cluster_selection_method="eom",
+        approx_min_span_tree=False,
+        core_dist_n_jobs=1
+    )
+    labels_h = clusterer.fit_predict(X)
+
+    out = df.loc[Xdf.index, ["customer_id", "item_id", "timestamp"]].copy()
+    out["cluster_hdbscan"] = labels_h
+
+    # Für reticulate nach R exportieren
+    cluster_hdbscan_df = out
+
+    # kurze Zusammenfassung
+    n_rows      = len(out)
+    n_clusters  = int(labels_h.max() + 1) if labels_h.max() >= 0 else 0
+    noise_count = int((labels_h == -1).sum())
+    noise_share = float((labels_h == -1).mean())
+
+    print({
+        "n_zeilen_zugeordnet": n_rows,
+        "n_cluster": n_clusters,
+        "noise_anzahl": noise_count,
+        "noise_anteil": round(noise_share, 4)
+    })
+
+    # Datei speichern
+    cluster_hdbscan_df.to_parquet(out_file, index=False)
+
+cluster_hdbscan_df.head(10)
+
+
+```
+
+\medskip
+
+\noindent Das Ergebnis zeigt eine sehr feingranulare Struktur mit vielen kleinen Clustern und einem gewissen Anteil an Beobachtungen, die als Rauschen gekennzeichnet sind. Dies illustriert den methodischen Unterschied: Während K-Means größere, homogene Segmente erzwingt, identifiziert HDBSCAN detaillierte Nischenmuster. Eine Bewertung, welche Methode für CRM-Segmente geeigneter ist, erfolgt in [Kapitel 4].
+
+```{python C.7-validierung}
+
+
+# Datei: cache/validation.json = Qualitätsmaße (Silhouette, DBCV)
+
+#| dependson: ["c7-kmeans","c7-hdbscan"]
+#| eval: true
+#| echo: true
+#| message: false
+#| warning: false
+
+import os, json
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
+try:
+    import hdbscan
+    from hdbscan.validity import validity_index  # DBCV
+except Exception:
+    raise SystemExit("Bitte hdbscan installieren: pip install hdbscan")
+
+os.makedirs("cache", exist_ok=True)
+out_file = "cache/validation.json"
+
+if os.path.exists(out_file):
+    with open(out_file, "r") as f:
+        results = json.load(f)
+else:
+    np.random.seed(42)
+
+    df = or2_time.copy()
+    features = ["quantity_w", "price_w", "revenue_w"]
+    Xdf = df[features].replace([np.inf, -np.inf], np.nan).dropna()
+    X = StandardScaler().fit_transform(Xdf)
+
+    # Silhouette für die K-Means-Baseline k=5
+    km = KMeans(n_clusters=5, random_state=42, n_init=10)
+    lab_km = km.fit_predict(X)
+    sil = float(silhouette_score(X, lab_km)) if len(np.unique(lab_km)) > 1 else None
+
+    # DBCV für HDBSCAN
+    hdb = hdbscan.HDBSCAN(min_cluster_size=50, min_samples=5,
+                          metric="euclidean", cluster_selection_method="eom",
+                          approx_min_span_tree=False, core_dist_n_jobs=1)
+    lab_h = hdb.fit_predict(X)
+
+    mask = lab_h >= 0
+    dbcv = float(validity_index(X[mask], lab_h[mask], metric="euclidean")) if mask.sum() > 1 and len(np.unique(lab_h[mask])) > 1 else None
+
+    results = {"silhouette_kmeans_k5": sil, "dbcv_hdbscan": dbcv}
+
+    with open(out_file, "w") as f:
+        json.dump(results, f)
+
+results
+
+
+```
+
+
+
+
+```{r C.7-reticulate-check}
+
+
+#| dependson: ["c7-kmeans","c7-hdbscan"]
+#| eval: true
+#| echo: true
+#| message: false
+#| warning: false
+
+if (reticulate::py_has_attr(py, "cluster_kmeans_df")) {
+  head(py$cluster_kmeans_df, 5)
+} else {
+  cat("cluster_kmeans_df nicht verfügbar\n")
+}
+
+if (reticulate::py_has_attr(py, "cluster_hdbscan_df")) {
+  head(py$cluster_hdbscan_df, 5)
+} else {
+  cat("cluster_hdbscan_df nicht verfügbar\n")
+}
+
+```
+
+```{r C.7b-boot-ari}
+
+
+# Datei: cache/bootstrap_ari.rds = Bootstrap-ARI für KMeans-Stabilität
+
+#| dependson: ["c4-zeit-normalisierung"]
+#| eval: true
+#| echo: true
+#| message: false
+#| warning: false
+
+library(dplyr)
+library(mclust)
+
+set.seed(42)
+dir.create("cache", showWarnings = FALSE)
+ari_file <- "cache/bootstrap_ari.rds"
+
+if (file.exists(ari_file)) {
+  ari_res <- readRDS(ari_file)
+} else {
+  # Optionaler Schnellmodus aus C.4; falls nicht gesetzt, hier definieren
+  if (!exists("FAST")) FAST <- TRUE
+
+  # Daten vorbereiten (optional: Downsampling für große Datenmengen)
+  N_MAX <- if (FAST) 100000L else Inf
+
+  dat <- or2_time %>%
+    select(quantity_w, price_w, revenue_w) %>%
+    filter(if_all(everything(), is.finite(.)))
+
+  if (is.finite(N_MAX) && nrow(dat) > N_MAX) {
+    dat <- dplyr::slice_sample(dat, n = N_MAX)
+  }
+
+  X <- scale(as.matrix(dat))
+
+  # k aus vorherigem K-Means übernehmen, falls vorhanden; sonst Baseline k = 5
+  k <- 5L
+  if (reticulate::py_has_attr(py, "cluster_kmeans_df")) {
+    k <- dplyr::n_distinct(py$cluster_kmeans_df$cluster_kmeans)
+    if (is.na(k) || k < 2L) k <- 5L
+  }
+
+  # Bootstrap-Parameter
+  B <- if (FAST) 10L else 20L
+  aris <- numeric(B)
+
+  # ARI misst die Übereinstimmung zweier unabhängiger Initialisierungen
+  # auf identischer Bootstrap-Stichprobe und quantifiziert so die
+  # Stabilität der K-Means-Zuordnung (Bewertung in 5.2)
+  for (b in seq_len(B)) {
+    idx <- sample(seq_len(nrow(X)), replace = TRUE)
+    km1 <- stats::kmeans(X[idx, , drop = FALSE], centers = k, nstart = 10)
+    km2 <- stats::kmeans(X[idx, , drop = FALSE], centers = k, nstart = 10)
+    aris[b] <- mclust::adjustedRandIndex(km1$cluster, km2$cluster)
+  }
+
+  ari_res <- data.frame(
+    n = nrow(X),
+    k = k,
+    bootstrap_runs = B,
+    ari_mean = mean(aris),
+    ari_sd   = sd(aris)
+  )
+
+  saveRDS(ari_res, ari_file)
+}
+
+ari_res
+
+
+```
+
 
 
 
